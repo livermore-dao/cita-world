@@ -3570,10 +3570,15 @@ async function ensureClient() {
     }
   }
   if (!window.SupaSync) throw new Error("找不到 supabase-sync.js，请确认「远程同步」目录与原型在同一项目里。");
-  if (!SupaSync.configured()) {
-    const u = $("sbUrl").value.trim();
-    const k = $("sbKey").value.trim();
-    if (u && k) SupaSync.configure(u, k);
+  // 内部凭据未就绪时（跨会话 / 旧版客户端），从输入框或本地存储恢复一次
+  if (!SupaSync.credsReady || !SupaSync.credsReady()) {
+    let u = $("sbUrl").value.trim();
+    let k = $("sbKey").value.trim();
+    try {
+      u = u || localStorage.getItem("wt_sb_url") || "";
+      k = k || localStorage.getItem("wt_sb_key") || "";
+    } catch (e) { /* 隐私模式 */ }
+    if (u && k) { try { SupaSync.configure(u, k); } catch (e) { /* 参数不合法，让后续动作去报错 */ } }
   }
   return window.SupaSync;
 }

@@ -56,6 +56,14 @@
     },
   };
 
+  // 关键：模块加载时就把上次保存的参数读进来。
+  // 之前这里初始化为空串，导致「上个会话保存过参数、刷新后再点注册/登录」时
+  // configured() 看本地存储返回 true，但内部 url/anonKey 是空的，getSB 直接抛
+  // 「先调用 SupaSync.configure(url, anonKey)」。
+  // （注意必须放在 store 定义之后，否则引用未初始化的 store 会直接抛错）
+  url = store.get(URL_KEY) || '';
+  anonKey = store.get(KEY_KEY) || '';
+
   function getSB() {
     var lib = (typeof window !== 'undefined' && window.supabase) || null;
     if (!lib || !lib.createClient) throw new Error('未加载 supabase-js：先在页面里引入 CDN 脚本');
@@ -126,6 +134,10 @@
     },
     configured: function () {
       return !!(url || store.get(URL_KEY)) && !!(anonKey || store.get(KEY_KEY));
+    },
+    /** 内部是否已就绪（可直接发请求）；与 configured 的区别：后者只看本地存储 */
+    credsReady: function () {
+      return !!(url && anonKey);
     },
     projectUrl: function () {
       return url || store.get(URL_KEY) || '';
