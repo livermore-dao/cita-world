@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 构建：原型 citaworld.html v2.0 · 2026-10-31T09:11:56.109Z · 由 工具/同步站点.js 自动生成，请勿手改 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -229,7 +230,60 @@
   .kpi .v{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}
   .kpi .l{font-size:10.5px;color:var(--ink-3);margin-top:2px}
   .tag{display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;background:#eef1fb;color:var(--brand);margin-right:5px}
-  /* ---------- 词库选择列表 ---------- */
+  /* ---------- 排行榜（v2.0） ---------- */
+  .rankbox{background:var(--card);border-radius:20px;padding:0;overflow:hidden}
+  .rankhero{
+    background:linear-gradient(160deg,#2a3a8f,#3552c7 55%,#4a63e7);
+    color:#fff;padding:14px 16px 16px;position:relative;
+  }
+  .rankhero h2{margin:0;font-size:16px;font-weight:800;letter-spacing:.02em;display:flex;align-items:center;justify-content:space-between}
+  .rankhero h2 b{font-weight:800}
+  .rankhero .rdate{font-size:11px;font-weight:600;opacity:.85}
+  .podium{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;align-items:end;margin-top:14px}
+  .pod{text-align:center;position:relative}
+  .pod .medal{font-size:15px;line-height:1;position:absolute;top:-9px;left:50%;transform:translateX(-50%)}
+  .pod .ava{
+    width:52px;height:52px;border-radius:50%;margin:0 auto 6px;background:#fff;color:var(--brand);
+    display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800;
+    border:2px solid rgba(255,255,255,.55);box-shadow:0 4px 14px rgba(10,20,60,.22);
+  }
+  .pod.p1 .ava{width:62px;height:62px;font-size:22px;border-color:#ffd76a}
+  .pod .nm{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pod .pt{font-size:13px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+  .pod .pt small{font-size:9.5px;font-weight:600;opacity:.75;margin-left:2px}
+  .pod.empty .ava{background:rgba(255,255,255,.18);color:rgba(255,255,255,.6);border-style:dashed;font-size:14px}
+  .pod.empty .nm{opacity:.7;font-weight:600}
+  .ranktabs{display:flex;border-bottom:1px solid var(--line);background:#fff}
+  .ranktabs button{
+    flex:1;border:0;background:none;padding:12px 0 10px;font-size:13px;font-weight:700;
+    color:var(--ink-2);cursor:pointer;font-family:inherit;position:relative;
+  }
+  .ranktabs button.on{color:var(--brand)}
+  .ranktabs button.on::after{
+    content:"";position:absolute;left:50%;bottom:0;transform:translateX(-50%);
+    width:26px;height:3px;border-radius:3px;background:var(--brand);
+  }
+  .ranklist{padding:10px 12px 4px;max-height:44vh;overflow:auto}
+  .rkrow{
+    display:flex;align-items:center;gap:10px;padding:9px 10px;margin-bottom:7px;
+    background:#f7f9fe;border:1px solid var(--line);border-radius:12px;
+  }
+  .rkrow.me{border-color:var(--brand);background:#eef1fb}
+  .rkrow .no{flex:none;width:22px;text-align:center;font-size:13px;font-weight:800;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .rkrow .ava{
+    flex:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:800;color:#fff;background:linear-gradient(160deg,#6b7fd8,#3552c7);
+  }
+  .rkrow .who{flex:1 1 auto;min-width:0}
+  .rkrow .who b{display:block;font-size:13.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rkrow .who small{display:block;font-size:10.5px;color:var(--ink-3);margin-top:1px}
+  .rkrow .sc{flex:none;text-align:right}
+  .rkrow .sc b{display:block;font-size:16px;font-weight:800;color:var(--brand);font-variant-numeric:tabular-nums}
+  .rkrow .sc small{display:block;font-size:9.5px;color:var(--ink-3);margin-top:1px}
+  .rankempty{padding:24px 10px;text-align:center;font-size:12px;color:var(--ink-3);line-height:1.8}
+  .ranksrc{padding:2px 14px 8px;font-size:10.5px;color:var(--ink-3);line-height:1.6}
+  .rankfoot{padding:0 16px 16px}
+
   .bankopt{
     display:flex;align-items:center;gap:10px;padding:10px 11px;margin-bottom:7px;
     border-radius:11px;border:1.4px solid var(--line);background:#f7f9fe;cursor:pointer;
@@ -597,6 +651,7 @@
       <div id="homeBanks"></div>
       <div class="row" style="margin:0 0 6px">
         <button class="btn wide" id="btnHomeImport">导入词库</button>
+        <button class="btn wide" id="btnHomeRank">🏆 排行榜</button>
         <button class="btn wide" id="btnHomeSheet">设置</button>
       </div>
 
@@ -712,6 +767,7 @@
     <div class="row">
       <button class="btn primary" id="btnAgain" style="flex:1">再来一局</button>
       <button class="btn" id="btnReview">只背错词</button>
+      <button class="btn" id="btnRankOver">排行榜</button>
       <button class="btn" id="btnBackHome">开始界面</button>
     </div>
   </div>
@@ -728,6 +784,29 @@
       <button class="btn" id="btnWrongExport">导出备份</button>
       <button class="btn" id="btnClearWrong">清空</button>
       <button class="btn" id="btnCloseWrong">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 积分排行榜（v2.0） ==================== -->
+<div class="overlay hide" id="ovRank">
+  <div class="modal rankbox">
+    <div class="rankhero">
+      <h2><b id="rankTitle">单词排行榜</b><span class="rdate" id="rankDate"></span></h2>
+      <div class="podium" id="rankPodium"></div>
+    </div>
+    <div class="ranktabs" id="rankTabs">
+      <button data-tab="day" class="on">今日榜</button>
+      <button data-tab="week">本周榜</button>
+      <button data-tab="total">总榜</button>
+    </div>
+    <div class="ranklist" id="rankList"></div>
+    <div class="ranksrc" id="rankSrc"></div>
+    <div class="rankfoot">
+      <div class="row">
+        <button class="btn primary" id="btnRankRefresh" style="flex:1">刷新</button>
+        <button class="btn" id="btnRankClose">关闭</button>
+      </div>
     </div>
   </div>
 </div>
@@ -834,8 +913,9 @@ const DEFAULT_BANK = [
    ========================================================= */
 /* ---------- 版本号 ----------
    规则：每次功能更新，版本号 +0.1（1.0 → 1.1 → 1.2 …），并在下面记一条更新记录。 */
-const APP_VERSION = "1.9";
+const APP_VERSION = "2.0";
 const VERSION_LOG = [
+  { v: "2.0", d: "新增积分排行榜：今日榜 / 本周榜（周一起算）/ 总榜三档，前三名上领奖台，其余按积分排列，自己那一行高亮标「我」。登录云端后全班共用一份榜（Supabase ranks 表，每局结束自动推送本人成绩）；未登录或断网时自动降级为「本机多用户排名」，不影响使用。" },
   { v: "1.9", d: "全站更名：中文「词塔」改为「辞塔」，英文「Word Tower」改为「Cita World」（标题、登录页、开始界面、设置·关于、导出存档、同步客户端与小程序文案同步更新）。存档键名（wordtower_*）、文件名与目录名保持不变，旧存档、旧部署与已有账号数据不受影响。" },
   { v: "1.8", d: "登录改为程序入口：打开页面先停在登录页（邮箱 + 口令，含注册与云端参数填写），登录后自动进入开始界面；本机会话有效时直接进入。登录成功会按数据情况自动上传或下载存档——云端为空则上传本机、本机为空则下载云端、两边都有则提示去设置里手动选择；设置里「退出」后回到登录页。" },
   { v: "1.7", d: "新增云同步（Supabase 远程存档）：设置面板可填 Project URL 与 anon key，邮箱注册 / 登录后「上传本机 → 云端」或「从云端拉取」，换电脑、换手机、清缓存都能拉回同一份存档；两台设备都改过时提示云端较新，可先拉取或覆盖云端。" },
@@ -2064,6 +2144,7 @@ function endRound(reason, cleared) {
       " → 「" + esc(rec.user.name) + "」累计积分 <b>" + rec.points + "</b>"
     : "还没有登记用户名，本局成绩未计入积分。去开始界面输入昵称后即可自动累计。";
   renderSpeedUI();
+  pushMyRank();                      // 本局成绩同步进排行榜（未登录/离线时静默跳过）
 
   const seen = {}, list = [], now = Date.now();
   wrongBookSorted().forEach((x) => {
@@ -3786,6 +3867,7 @@ function showLogin() {
   $("ovHome").classList.add("hide");
   $("ovOver").classList.add("hide");
   $("ovStart").classList.add("hide");
+  $("ovRank").classList.add("hide");
   loginPrefill();
   $("ovLogin").classList.remove("hide");
   setTimeout(() => { const el = $("lgEmail"); if (el && !el.value) el.focus(); }, 80);
@@ -3863,6 +3945,7 @@ $("btnLgLogin").addEventListener("click", () => lgRun(async () => {
   const who = (r && r.user && r.user.email) || email;
   $("sbEmail").value = who;                    // 设置面板同步显示同一账号
   const info = await afterLoginSync();
+  pushMyRank();                                // 登录后把本机成绩补推一次排行榜
   return { msg: "登录成功：" + who + info, done: true };
 }));
 
@@ -3874,10 +3957,230 @@ $("btnLgRegister").addEventListener("click", () => lgRun(async () => {
   }
   $("sbEmail").value = email;
   const info = await afterLoginSync();
+  pushMyRank();                                // 注册后同样补推一次排行榜
   return { msg: "注册成功：" + email + info, done: true };
 }));
 
 $("btnLgSkip").addEventListener("click", () => { LG_MSG(""); enterApp(); });
+
+/* =========================================================
+   13.8 积分排行榜（v2.0）
+   ---------------------------------------------------------
+   三个口径：今日榜 / 本周榜（ISO 周，周一为首日）/ 总榜。
+   数据来源两级，自动择优：
+     · 已登录 + 已配云端 → Supabase ranks 表（多设备、多账号同一份）
+     · 未登录 / 断网 / 没建表 → 用本机存档里登记过的用户互相比
+   每局结束、登录后、打开榜单时会把本人成绩推上去，失败静默，
+   不影响游戏本身。
+   ========================================================= */
+const RANK_TABS = [
+  { id: "day", label: "今日榜", unit: "分/今天" },
+  { id: "week", label: "本周榜", unit: "分/本周" },
+  { id: "total", label: "总榜", unit: "分/累计" },
+];
+let rankTab = "day";
+let rankRows = [];
+let rankSource = "local";     // local | cloud
+let rankNote = "";
+
+/** ISO 8601 周键：'2026-W44'（周一为一周第一天） */
+function weekKey(ts) {
+  const d = new Date(ts);
+  const t = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = (t.getDay() + 6) % 7;                  // 周一=0 … 周日=6
+  t.setDate(t.getDate() - day + 3);                  // 挪到本周四
+  const firstThu = new Date(t.getFullYear(), 0, 4);  // 1 月 4 日必在 W01
+  const fday = (firstThu.getDay() + 6) % 7;
+  firstThu.setDate(firstThu.getDate() - fday + 3);
+  const wk = 1 + Math.round((t - firstThu) / (7 * 86400000));
+  return t.getFullYear() + "-W" + String(wk).padStart(2, "0");
+}
+
+/** 本周已过去的日期键（周一 → 今天） */
+function weekDays(ts) {
+  const out = [];
+  const d = new Date(ts);
+  const day = (d.getDay() + 6) % 7;
+  for (let i = 0; i <= day; i++) {
+    out.push(dayKey(new Date(d.getFullYear(), d.getMonth(), d.getDate() - (day - i)).getTime()));
+  }
+  return out;
+}
+
+function pointsInDays(u, keys) {
+  const days = (u && u.days) || {};
+  let points = 0, rounds = 0;
+  keys.forEach((k) => {
+    const d = days[k];
+    if (d) { points += d.points || 0; rounds += d.rounds || 0; }
+  });
+  return { points: points, rounds: rounds };
+}
+function todayStat(u) { return pointsInDays(u, [dayKey(Date.now())]); }
+function weekStat(u) { return pointsInDays(u, weekDays(Date.now())); }
+
+/** 某一口径下、当前用户的成绩 */
+function statFor(u, tab) {
+  if (!u) return { points: 0, rounds: 0 };
+  if (tab === "total") return { points: u.points || 0, rounds: u.rounds || 0 };
+  return tab === "week" ? weekStat(u) : todayStat(u);
+}
+
+/** 本机多用户排名（没有云端时的数据源） */
+function localRankRows(tab) {
+  const o = loadUsers();
+  return (o.list || []).map((u) => {
+    const s = statFor(u, tab);
+    return { name: u.name, points: s.points, rounds: s.rounds, me: u.name === o.current };
+  }).sort((a, b) => b.points - a.points);
+}
+
+function rankPkey(tab) {
+  if (tab === "total") return "all";
+  return tab === "week" ? weekKey(Date.now()) : dayKey(Date.now());
+}
+function rankUnit(tab) {
+  const t = RANK_TABS.filter((x) => x.id === tab)[0] || RANK_TABS[0];
+  return t.unit;
+}
+function initial(name) {
+  const s = String(name == null ? "" : name).trim();
+  return s ? s.slice(0, 1) : "?";
+}
+
+function renderRankSrc() {
+  const tip = rankSource === "cloud"
+    ? "数据来自云端排行榜：登录同一云端账号的人都会出现在这里，换设备也一致"
+    : "本机模式：只统计这台设备上登记过的用户名，登录后可和同学一起排名";
+  $("rankSrc").innerHTML = esc(tip) + (rankNote ? '<br>' + esc(rankNote) : "");
+}
+
+function renderRank() {
+  $("rankDate").textContent = rankTab === "day"
+    ? dayKey(Date.now())
+    : (rankTab === "week" ? weekKey(Date.now()) : "累计");
+  Array.prototype.forEach.call($("rankTabs").children, (b) => {
+    b.classList.toggle("on", b.getAttribute("data-tab") === rankTab);
+  });
+
+  // 领奖台：1 2 3 名的排列是「2 - 1 - 3」，第一名居中且头像更大
+  const top = rankRows.slice(0, 3);
+  const order = [1, 0, 2];
+  $("rankPodium").innerHTML = order.map((i) => {
+    const r = top[i];
+    if (!r) {
+      return '<div class="pod empty"><div class="ava">—</div><div class="nm">虚位以待</div><div class="pt">—</div></div>';
+    }
+    const medal = ["🥇", "🥈", "🥉"][i];
+    const unit = rankUnit(rankTab).replace("分/", "");
+    return '<div class="pod p' + (i + 1) + '">' +
+      '<div class="medal">' + medal + '</div>' +
+      '<div class="ava">' + esc(initial(r.name)) + '</div>' +
+      '<div class="nm">' + esc(r.name) + '</div>' +
+      '<div class="pt">' + r.points + '<small>' + unit + '</small></div></div>';
+  }).join("");
+
+  // 列表：位置够的话从第 4 名开始（前三已在领奖台），不够就全部列出
+  const start = rankRows.length > 3 ? 3 : 0;
+  const rows = rankRows.slice(start);
+  if (!rankRows.length) {
+    $("rankList").innerHTML = '<div class="rankempty">这一榜还没有成绩<br>玩一局，积分就会出现在这里</div>';
+  } else {
+    $("rankList").innerHTML = rows.map((r, i) => {
+      const no = start + i + 1;
+      return '<div class="rkrow' + (r.me ? " me" : "") + '">' +
+        '<div class="no">' + no + '</div>' +
+        '<div class="ava">' + esc(initial(r.name)) + '</div>' +
+        '<div class="who"><b>' + esc(r.name) + (r.me ? ' <span class="tag">我</span>' : "") + '</b>' +
+        '<small>' + (r.rounds || 0) + ' 局</small></div>' +
+        '<div class="sc"><b>' + r.points + '</b><small>' + rankUnit(rankTab) + '</small></div>' +
+        '</div>';
+    }).join("");
+  }
+  renderRankSrc();
+}
+
+/** 拉取某个榜的数据：云端优先，失败降级本机 */
+async function loadRankRows(tab) {
+  rankTab = tab;
+  const me = currentUserName();
+  const pkey = rankPkey(tab);
+  try {
+    if (window.SupaSync && SupaSync.credsReady && SupaSync.credsReady() && SupaSync.fetchRanks) {
+      const rows = await SupaSync.fetchRanks(tab, pkey, 50);
+      const lo = (me || "").toLowerCase();
+      const mine = lo ? rows.filter((r) => String(r.name || "").toLowerCase() === lo) : [];
+      rankRows = rows.map((r) => ({
+        name: r.name || "同学",
+        points: Number(r.points) || 0,
+        rounds: Number(r.rounds) || 0,
+        me: !!lo && String(r.name || "").toLowerCase() === lo,
+      }));
+      // 自己还没推过 → 用本机成绩补一行，避免「榜上看不到自己」
+      if (!mine.length && me) {
+        const s = statFor(currentUser(), tab);
+        if (s.points > 0) {
+          rankRows.push({ name: me, points: s.points, rounds: s.rounds, me: true });
+          rankRows.sort((a, b) => b.points - a.points);
+        }
+      }
+      rankSource = "cloud";
+      return { cloud: true };
+    }
+  } catch (e) {
+    rankSource = "local";
+    return { cloud: false, err: (e && e.message) || String(e) };
+  }
+  rankSource = "local";
+  return { cloud: false };
+}
+
+function openRank(tab) {
+  rankNote = "";
+  rankTab = RANK_TABS.some((t) => t.id === tab) ? tab : rankTab;
+  rankRows = localRankRows(rankTab);   // 先本机秒开，等云端返回再替换
+  rankSource = "local";
+  $("ovRank").classList.remove("hide");
+  renderRank();
+  loadRankRows(rankTab).then((r) => {
+    if (r && r.err) rankNote = "云端不可用（" + r.err + "），已按本机统计显示";
+    renderRank();
+    if (rankSource === "cloud") pushMyRank();   // 顺手把最新成绩推上去
+  });
+}
+function closeRank() { $("ovRank").classList.add("hide"); }
+
+/** 当前用户的排行榜成绩包（推送用） */
+function myRankProfile() {
+  const u = currentUser();
+  if (!u) return null;
+  const t = todayStat(u), w = weekStat(u);
+  return {
+    name: u.name,
+    total: u.points || 0,
+    rounds: u.rounds || 0,
+    day: dayKey(Date.now()),
+    today: t.points,
+    todayRounds: t.rounds,
+    week: weekKey(Date.now()),
+    weekPoints: w.points,
+    weekRounds: w.rounds,
+  };
+}
+
+/** 把本人成绩推到云端排行榜；未登录 / 未配置 / 失败都静默返回 false */
+async function pushMyRank() {
+  const p = myRankProfile();
+  if (!p) return false;
+  try {
+    if (!window.SupaSync || !SupaSync.credsReady || !SupaSync.credsReady()) return false;
+    if (!SupaSync.pushRank) return false;
+    await SupaSync.pushRank(p);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
 /* =========================================================
    14. 交互绑定
@@ -3888,7 +4191,12 @@ $("padD").addEventListener("click", () => { if (S.piece && S.phase === "playing"
 $("padDrop").addEventListener("click", dropToBottom);
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") { if (!$("sheetMask").classList.contains("hide")) { closeSheet(); return; } }
+  if (e.key === "Escape") {
+    if (!$("sheetMask").classList.contains("hide")) { closeSheet(); return; }
+    if (!$("ovRank").classList.contains("hide")) { closeRank(); return; }
+  }
+  // 排行榜打开时吞掉其它按键，避免空格误触发开局
+  if (!$("ovRank").classList.contains("hide")) return;
   // 开始界面上按回车 / 空格 = 开始游戏（正在输入昵称时交给输入框自己处理）
   if (!$("ovHome").classList.contains("hide")) {
     const ae = document.activeElement;
@@ -3921,6 +4229,15 @@ $("btnBackHome").addEventListener("click", openHome);
 $("btnHomeStart").addEventListener("click", startFromHome);
 $("btnHomeImport").addEventListener("click", () => $("fileInput").click());
 $("btnHomeSheet").addEventListener("click", openSheet);
+
+/* 排行榜（v2.0） */
+$("btnHomeRank").addEventListener("click", () => openRank("day"));
+$("btnRankOver").addEventListener("click", () => openRank("day"));
+$("btnRankClose").addEventListener("click", closeRank);
+$("btnRankRefresh").addEventListener("click", () => openRank(rankTab));
+Array.prototype.forEach.call($("rankTabs").children, (b) => {
+  b.addEventListener("click", () => openRank(b.getAttribute("data-tab")));
+});
 $("btnWrong").addEventListener("click", () => { closeSheet(); showWrongBook(); });
 $("btnReview2").addEventListener("click", () => { $("ovWrong").classList.add("hide"); startRound({ review: true }); });
 $("btnCloseWrong").addEventListener("click", () => $("ovWrong").classList.add("hide"));

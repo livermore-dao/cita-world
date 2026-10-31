@@ -259,5 +259,44 @@
       }
       return { applied: apply(res.state), rev: res.rev, updatedAt: res.updatedAt };
     },
+
+    /**
+     * 推送本人在排行榜里的成绩（v2.0）。
+     * p = { name, total, rounds, day, today, todayRounds, week, weekPoints, weekRounds }
+     * day/week 由客户端按本地时区算好（day: '2026-10-31'，week: '2026-W44'）。
+     * 一次 upsert 三行：总榜 / 今日榜 / 本周榜。
+     */
+    pushRank: async function (p) {
+      var sb = getSB();
+      var u = await requireUser();
+      var nm = String((p && p.name) || '').slice(0, 12);
+      var rows = [
+        { user_id: u.id, scope: 'total', pkey: 'all', name: nm,
+          points: Math.max(0, p.total | 0), rounds: Math.max(0, p.rounds | 0) },
+        { user_id: u.id, scope: 'day', pkey: p.day, name: nm,
+          points: Math.max(0, p.today | 0), rounds: Math.max(0, p.todayRounds | 0) },
+        { user_id: u.id, scope: 'week', pkey: p.week, name: nm,
+          points: Math.max(0, p.weekPoints | 0), rounds: Math.max(0, p.weekRounds | 0) },
+      ];
+      supaErr(await sb.from('ranks').upsert(rows));
+      return true;
+    },
+
+    /**
+     * 拉取某一榜（scope: 'day'|'week'|'total'，pkey: 对应键，'all' 表示总榜）。
+     * 返回 [{ user_id, name, points, rounds, updated_at }]，按积分降序。
+     */
+    fetchRanks: async function (scope, pkey, limit) {
+      var sb = getSB();
+      var res = supaErr(
+        await sb.from('ranks')
+          .select('user_id,name,points,rounds,updated_at')
+          .eq('scope', scope)
+          .eq('pkey', pkey)
+          .order('points', { ascending: false })
+          .limit(limit || 50)
+      );
+      return res.data || [];
+    },
   };
 });
