@@ -1,5 +1,5 @@
 /**
- * 词塔 Word Tower · 远程同步客户端
+ * 辞塔 Cita World · 远程同步客户端
  *
  * 浏览器与微信小程序通用（同一份文件）：
  *   浏览器：<script src="cloud-sync.js"></script> → window.WordTowerSync

@@ -1,5 +1,5 @@
 /**
- * 词塔 Word Tower · Supabase 同步客户端
+ * 辞塔 Cita World · Supabase 同步客户端
  *
  * 依赖：页面先加载 supabase-js（CDN）：
  *   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -88,9 +88,12 @@
 
   async function requireUser() {
     var sb = getSB();
-    var res = supaErr(await sb.auth.getUser());
+    var res = await sb.auth.getUser();
     var u = res && res.data && res.data.user;
-    if (!u) throw err('not_logged_in', '未登录或会话已过期');
+    // supabase-js v2 在「没有会话」时返回 error: Auth session missing!，
+    // 这里统一翻译成 not_logged_in，界面才提示得清楚（否则会显示英文原始报错）
+    if (!u) throw err('not_logged_in', '未登录或会话已过期，请先登录', { cause: res && res.error });
+    supaErr(res);
     return u;
   }
 
@@ -174,10 +177,30 @@
     },
     logout: async function () {
       var sb = getSB();
-      await sb.auth.signOut();
+      var online = true;
+      try {
+        await sb.auth.signOut();            // 默认 scope=global：会请求服务器
+      } catch (e) {
+        online = false;
+        // 断网 / 墙 / 服务器 5xx 时 signOut 会抛错且可能不清本机会话 →
+        // 再用 scope:'local' 只清本机（不请求服务器）
+        try { await sb.auth.signOut({ scope: 'local' }); } catch (e2) {}
+      }
+      // 最终兜底：直接清掉 supabase-js 存在本机的会话键，保证「退出」在任何情况下都生效
+      try {
+        if (hasLS()) {
+          var kill = [];
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (k && k.indexOf('sb-') === 0 && k.indexOf('-auth-token') > -1) kill.push(k);
+          }
+          for (var j = 0; j < kill.length; j++) localStorage.removeItem(kill[j]);
+        }
+      } catch (e3) {}
+      client = null;                        // 丢掉内存里的客户端，下次请求按剩余会话重建
       store.del(REV_KEY);
       store.del(PULLED_KEY);
-      return true;
+      return { online: online };
     },
     email: async function () {
       try {

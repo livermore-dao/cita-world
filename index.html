@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>词塔 Word Tower — 背单词俄罗斯方块（可玩原型）</title>
+<title>辞塔 Cita World — 背单词俄罗斯方块（可玩原型）</title>
 <style>
   :root{
     --bg:#eef1f8;
@@ -211,6 +211,13 @@
   }
   .modal h2{margin:0 0 4px;font-size:19px}
   .modal .sub{margin:0 0 14px;font-size:12.5px;color:var(--ink-2);line-height:1.6}
+  /* ---------- 登录页：可折叠的云端参数 ---------- */
+  .lgset{margin-top:12px;border:1px solid var(--line);border-radius:11px;background:#f7f9fe;overflow:hidden}
+  .lgset-h{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;font-size:12px;font-weight:700;color:var(--ink-2);cursor:pointer;user-select:none}
+  .lgset-h span{color:var(--ink-3);transition:transform .18s}
+  .lgset.open .lgset-h span{transform:rotate(180deg)}
+  .lgset-b{display:none;padding:0 12px 12px}
+  .lgset.open .lgset-b{display:block}
   .wordlist{display:flex;flex-direction:column;gap:6px;margin:10px 0 14px}
   .wrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;background:#f7f9fe;border:1px solid var(--line)}
   .wrow .en{font-weight:800;font-size:13.5px}
@@ -574,7 +581,7 @@
 <!-- ==================== 开始界面 ==================== -->
 <div class="overlay" id="ovHome">
   <div class="modal">
-    <h2>词塔 · Word Tower<span class="ver" id="verHome">v1.0</span></h2>
+    <h2>辞塔 · Cita World<span class="ver" id="verHome">v1.0</span></h2>
     <p class="sub">单词从塔顶落下，把它落到<b>释义正确的那一列</b>里：落对拆塔、落错堆塔。<br>
     本局出现的每个词<b>累计答对 3 次</b>，即通关。</p>
 
@@ -607,6 +614,46 @@
     </div>
 
     <div class="bankwarn" id="homeWarn" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ==================== 登录（程序入口） ==================== -->
+<div class="overlay" id="ovLogin">
+  <div class="modal">
+    <h2>辞塔 · Cita World<span class="ver" id="verLogin">v1.0</span></h2>
+    <p class="sub">登录后，<b>积分 / 学习记录 / 导入的词库 / 错词本</b>会自动同步到云端，换电脑、换手机、清缓存都能接着玩。</p>
+
+    <div class="row">
+      <input class="uinp" id="lgEmail" placeholder="邮箱" autocomplete="username" spellcheck="false">
+    </div>
+    <div class="row" style="margin-top:8px">
+      <input class="uinp" id="lgPass" type="password" placeholder="口令（≥6 位）" autocomplete="current-password">
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn primary wide" id="btnLgLogin">登录</button>
+      <button class="btn wide" id="btnLgRegister">注册</button>
+    </div>
+    <p class="tips" id="lgMsg"></p>
+
+    <div class="lgset" id="lgSetBox">
+      <div class="lgset-h" id="lgSetToggle">云端参数（首次使用填一次）<span id="lgSetArrow">▾</span></div>
+      <div class="lgset-b" id="lgSetBody">
+        <div class="row">
+          <input class="uinp" id="lgUrl" placeholder="Project URL，如 https://xxxx.supabase.co" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="row" style="margin-top:8px">
+          <input class="uinp" id="lgKey" placeholder="anon public key（eyJhbGciOi…）" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn wide" id="btnLgSave">保存参数</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <button class="btn wide" id="btnLgSkip">先不登录，直接玩</button>
+    </div>
+    <p class="tips">不登录也能玩，存档只存在本机（换设备会丢）。登录入口随时可在「设置 → 云同步」里再打开。</p>
   </div>
 </div>
 
@@ -787,8 +834,10 @@ const DEFAULT_BANK = [
    ========================================================= */
 /* ---------- 版本号 ----------
    规则：每次功能更新，版本号 +0.1（1.0 → 1.1 → 1.2 …），并在下面记一条更新记录。 */
-const APP_VERSION = "1.7";
+const APP_VERSION = "1.9";
 const VERSION_LOG = [
+  { v: "1.9", d: "全站更名：中文「词塔」改为「辞塔」，英文「Word Tower」改为「Cita World」（标题、登录页、开始界面、设置·关于、导出存档、同步客户端与小程序文案同步更新）。存档键名（wordtower_*）、文件名与目录名保持不变，旧存档、旧部署与已有账号数据不受影响。" },
+  { v: "1.8", d: "登录改为程序入口：打开页面先停在登录页（邮箱 + 口令，含注册与云端参数填写），登录后自动进入开始界面；本机会话有效时直接进入。登录成功会按数据情况自动上传或下载存档——云端为空则上传本机、本机为空则下载云端、两边都有则提示去设置里手动选择；设置里「退出」后回到登录页。" },
   { v: "1.7", d: "新增云同步（Supabase 远程存档）：设置面板可填 Project URL 与 anon key，邮箱注册 / 登录后「上传本机 → 云端」或「从云端拉取」，换电脑、换手机、清缓存都能拉回同一份存档；两台设备都改过时提示云端较新，可先拉取或覆盖云端。" },
   { v: "1.6", d: "新增语音开关按钮：游戏顶栏 🔊/🔇 一键开关单词发音，开始界面「本局设置」与设置面板同步显示同一状态，三处任改其一立即生效。" },
   { v: "1.5", d: "单词自动朗读：每个词一开始下落就用浏览器语音合成朗读英文发音，读完若还没落地会隔 0.5 秒再读，落地 / 暂停 / 结束时立即停止；设置里新增「单词发音」开关，默认开启。" },
@@ -1535,7 +1584,7 @@ function renderVersionBox() {
   const el = $("verBox");
   if (!el) return;
   el.innerHTML =
-    '<div class="datarow"><span class="k">版本</span><span class="v"><b>词塔 v' + APP_VERSION +
+    '<div class="datarow"><span class="k">版本</span><span class="v"><b>辞塔 v' + APP_VERSION +
       "</b> <small>· 每次功能更新 +0.1</small></span></div>" +
     '<div class="datarow"><span class="k">更新记录</span><span class="v"><div class="verlog">' +
     VERSION_LOG.map((x) => "<div><b>v" + x.v + "</b><span>" + esc(x.d) + "</span></div>").join("") +
@@ -1551,12 +1600,12 @@ function exportAllArchive() {
     try { wrongs[u.name] = JSON.parse(LS.get(wbKeyFor(u.name)) || "{}"); } catch (e) { wrongs[u.name] = {}; }
   }
   const payload = {
-    app: "词塔 Word Tower", version: APP_VERSION,
+    app: "辞塔 Cita World", version: APP_VERSION,
     exportedAt: new Date().toISOString(),
     users: o, wrongs: wrongs,
     banks: importedBanks.map((b) => ({ id: b.id, name: b.name, items: b.items, ts: b.ts }))
   };
-  downloadText(JSON.stringify(payload, null, 2), "词塔存档-" + stamp() + ".json", "application/json");
+  downloadText(JSON.stringify(payload, null, 2), "辞塔存档-" + stamp() + ".json", "application/json");
   alert("已导出 " + o.list.length + " 个用户的存档（含各自的错词本）" +
     (importedBanks.length ? "与 " + importedBanks.length + " 个导入词库" : "") +
     "。\n换设备或清理浏览器数据后，用「导入存档」还原即可。");
@@ -3653,8 +3702,19 @@ $("btnSbLogin").addEventListener("click", () => cloudRun(async () => {
 }));
 
 $("btnSbLogout").addEventListener("click", () => cloudRun(async () => {
-  await SupaSync.logout();
-  return { msg: "已退出登录（本机存档不受影响）。" };
+  const r = await SupaSync.logout();
+  // 退出后不再保留账号回显（口令一定清，邮箱也清掉，避免看起来还登录着）
+  $("sbPass").value = "";
+  $("sbEmail").value = "";
+  $("lgPass").value = "";
+  // 退出后回到登录页（登录是程序入口，退出即退出程序内的身份）
+  closeSheet();
+  showLogin();
+  return {
+    msg: r && r.online === false
+      ? "已退出：服务器未响应，已清除本机会话（本机存档不受影响）。联网后可再点一次退出。"
+      : "已退出登录（本机存档不受影响）。",
+  };
 }));
 
 $("btnSbUpload").addEventListener("click", () => cloudRun(async () => {
@@ -3685,6 +3745,139 @@ $("btnSbPull").addEventListener("click", () => cloudRun(async () => {
   const n = SupaSync.apply(res.state);
   return { msg: "已写入本机 " + n + " 项，正在刷新…", reload: true };
 }));
+
+/* =========================================================
+   13.7 登录入口（程序最开始）
+   ---------------------------------------------------------
+   打开页面 → 有本机会话则直接进开始界面，否则先停在登录页。
+   登录 / 注册成功后按「云端与本机谁有数据」自动决定上传或下载：
+     云端空 + 本机有 → 自动上传（首次建立云端存档）
+     云端有 + 本机空 → 自动下载并刷新
+     两边都有       → 不自动覆盖，提示去设置里手动选择
+   ========================================================= */
+function LG_MSG(t, isErr) {
+  const el = $("lgMsg");
+  if (!el) return;
+  el.textContent = t || "";
+  el.style.color = isErr ? "var(--bad)" : "var(--ink-3)";
+}
+
+/** 本机是否存有 supabase 会话（只看本地，不需要联网，离线也能判断「已登录」） */
+function hasLocalSession() {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.indexOf("sb-") === 0 && k.indexOf("-auth-token") > -1) return true;
+    }
+  } catch (e) {}
+  return false;
+}
+
+function loginPrefill() {
+  $("lgUrl").value = $("sbUrl").value || "";
+  $("lgKey").value = $("sbKey").value || "";
+  // 还没配过云端参数 → 默认把参数区展开，省得找不到入口
+  $("lgSetBox").classList.toggle("open", !($("lgUrl").value && $("lgKey").value));
+  $("verLogin").textContent = "v" + APP_VERSION;
+  LG_MSG("");
+}
+
+function showLogin() {
+  $("ovHome").classList.add("hide");
+  $("ovOver").classList.add("hide");
+  $("ovStart").classList.add("hide");
+  loginPrefill();
+  $("ovLogin").classList.remove("hide");
+  setTimeout(() => { const el = $("lgEmail"); if (el && !el.value) el.focus(); }, 80);
+}
+
+function enterApp() {
+  $("ovLogin").classList.add("hide");
+  openHome();
+}
+
+/** 程序入口：有会话 → 直接进主页；没有 → 先登录 */
+function bootEntry() {
+  $("verLogin").textContent = "v" + APP_VERSION;
+  renderHome();                 // 先把主页内容渲染好（即使被登录页遮住）
+  if (hasLocalSession()) enterApp();
+  else showLogin();
+}
+
+/** 登录页专用动作外壳：结果写在登录页提示里，成功后可自动进主页 */
+async function lgRun(fn) {
+  LG_MSG("处理中…");
+  try {
+    await ensureLib();
+    const r = await fn();
+    LG_MSG((r && r.msg) || "");
+    if (r && r.done) setTimeout(enterApp, 650);
+    return r;
+  } catch (e) {
+    LG_MSG("失败：" + ((e && e.message) || e), true);
+    return null;
+  }
+}
+
+/** 登录成功后：按云端 / 本机有无数据决定上传还是下载，返回一句说明 */
+async function afterLoginSync() {
+  try {
+    const local = SupaSync.summary();
+    const res = await SupaSync.pull();
+    if (!res.state) {
+      if (local.users || local.banks) {
+        const up = await SupaSync.upload();
+        return "；本机存档已上传（云端版本 v" + up.rev + "）";
+      }
+      return "";
+    }
+    if (!local.users && !local.banks) {
+      const n = SupaSync.apply(res.state);
+      return "；已把云端存档（v" + res.rev + "，" + n + " 项）下载到本机";
+    }
+    return "；云端已有存档 v" + res.rev + "，本机也有数据，可在「设置 → 云同步」里选择拉取或覆盖";
+  } catch (e) {
+    return "；存档同步未完成（" + ((e && e.message) || e) + "），可在设置里手动操作";
+  }
+}
+
+$("lgSetToggle").addEventListener("click", () => $("lgSetBox").classList.toggle("open"));
+
+$("btnLgSave").addEventListener("click", async () => {
+  LG_MSG("保存中…");
+  try {
+    await ensureClient();
+    SupaSync.configure($("lgUrl").value.trim(), $("lgKey").value.trim());
+    $("sbUrl").value = $("lgUrl").value.trim();   // 与设置面板保持同一份参数
+    $("sbKey").value = $("lgKey").value.trim();
+    $("lgSetBox").classList.remove("open");
+    LG_MSG("参数已保存：" + SupaSync.projectUrl() + "，现在可以登录或注册。");
+  } catch (e) {
+    LG_MSG("失败：" + ((e && e.message) || e), true);
+  }
+});
+
+$("btnLgLogin").addEventListener("click", () => lgRun(async () => {
+  const email = $("lgEmail").value.trim();
+  const r = await SupaSync.login(email, $("lgPass").value);
+  const who = (r && r.user && r.user.email) || email;
+  $("sbEmail").value = who;                    // 设置面板同步显示同一账号
+  const info = await afterLoginSync();
+  return { msg: "登录成功：" + who + info, done: true };
+}));
+
+$("btnLgRegister").addEventListener("click", () => lgRun(async () => {
+  const email = $("lgEmail").value.trim();
+  const r = await SupaSync.register(email, $("lgPass").value);
+  if (r.needsConfirm) {
+    return { msg: "注册成功，但项目开启了邮箱验证：去邮箱点确认链接，再回来点「登录」。" };
+  }
+  $("sbEmail").value = email;
+  const info = await afterLoginSync();
+  return { msg: "注册成功：" + email + info, done: true };
+}));
+
+$("btnLgSkip").addEventListener("click", () => { LG_MSG(""); enterApp(); });
 
 /* =========================================================
    14. 交互绑定
@@ -3851,10 +4044,10 @@ function showWrongBook() {
   renderSpeakUI();
   updateWrongCount();
 
-  // 先量一次尺寸画空棋盘，再停在开始界面等玩家登记用户名、选词库、点开始
+  // 先量一次尺寸画空棋盘，再决定入口：已登录 → 开始界面；未登录 → 登录页
   requestAnimationFrame(() => {
     forceLayout();
-    openHome();
+    bootEntry();
     setTimeout(forceLayout, 60);
   });
 })();
