@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 构建：原型 citaworld.html v2.0 · 2026-10-31T09:11:56.109Z · 由 工具/同步站点.js 自动生成，请勿手改 -->
+<!-- 构建：原型 citaworld.html v2.3 · 2026-10-31T09:57:39.173Z · 由 工具/同步站点.js 自动生成，请勿手改 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -60,6 +60,7 @@
   .icon-btn .top{font-size:9.5px;color:var(--ink-3);letter-spacing:.05em;line-height:1.3}
   .icon-btn .bot{font-size:13px;font-weight:800;line-height:1.15;white-space:nowrap}
   .icon-btn.sq{width:40px;padding:0;font-size:16px}
+  .icon-btn.hide{display:none}
   .icon-btn.sq.mute{color:#a9b0bf;background:#f2f4f9;border-style:dashed}
 
   /* ---------- 顶部词库栏（游戏界面之上） ---------- */
@@ -390,21 +391,7 @@
   .verlog > div{display:flex;gap:7px;align-items:flex-start}
   .verlog b{flex:0 0 30px;color:var(--brand);font-variant-numeric:tabular-nums}
 
-  /* ---------- 用户登记（开始界面第一步） ---------- */
-  .userbox{background:#f7f9fe;border:1px solid var(--line);border-radius:12px;padding:10px 11px;margin-bottom:8px}
-  .userbox .cur{font-size:12.5px;color:var(--ink-2);line-height:1.65}
-  .userbox .cur b{color:var(--ink);font-size:14px}
-  .uchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
-  .uchip{
-    display:inline-flex;align-items:center;gap:5px;border:1.4px solid var(--line);
-    background:#fff;border-radius:99px;padding:4px 10px;font-size:11.5px;font-weight:700;
-    color:var(--ink-2);cursor:pointer;font-family:inherit;
-  }
-  .uchip.on{border-color:var(--brand);background:#eef1fb;color:var(--brand)}
-  .uchip .pt{font-size:10px;color:var(--ink-3);font-weight:600}
-  .uchip.on .pt{color:var(--brand-2)}
-  .uchip .x{font-size:10px;color:#c3cadb;padding:0 1px}
-  .uchip .x:hover{color:var(--bad)}
+  /* ---------- 登录页 / 主页玩家卡片输入框 ---------- */
   .uinp{
     flex:1 1 auto;min-width:0;border:1.4px solid var(--line);border-radius:11px;
     padding:10px 11px;font-size:13px;font-family:inherit;background:#fff;color:var(--ink);
@@ -478,6 +465,7 @@
       <span class="top">速度</span><span class="bot" id="uiSpeed">标准</span>
     </button>
     <button class="icon-btn sq" id="btnSpeak" title="单词发音：开（点击关闭）">🔊</button>
+    <button class="icon-btn sq hide" id="btnQuit" title="返回主页面（放弃本局）">🏠</button>
     <button class="icon-btn sq" id="btnPause" title="暂停 / 继续">❚❚</button>
   </div>
 
@@ -639,15 +627,11 @@
     <p class="sub">单词从塔顶落下，把它落到<b>释义正确的那一列</b>里：落对拆塔、落错堆塔。<br>
     本局出现的每个词<b>累计答对 3 次</b>，即通关。</p>
 
-    <div class="homelb">第一步 · 登记用户名</div>
-    <div class="userbox" id="userBox"></div>
-    <div class="row" id="userEnterRow">
-      <input class="uinp" id="userInput" maxlength="12" placeholder="输入昵称，如：小明" autocomplete="off">
-      <button class="btn primary" id="btnUserName">进入</button>
-    </div>
+    <div class="homelb" id="homeUserLb">当前玩家</div>
+    <div class="databox" id="homeUser"></div>
 
     <div id="homeSetup">
-      <div class="homelb">第二步 · 选择词库</div>
+      <div class="homelb">选择词库</div>
       <div id="homeBanks"></div>
       <div class="row" style="margin:0 0 6px">
         <button class="btn wide" id="btnHomeImport">导入词库</button>
@@ -655,7 +639,7 @@
         <button class="btn wide" id="btnHomeSheet">设置</button>
       </div>
 
-      <div class="homelb">第三步 · 本局设置</div>
+      <div class="homelb">本局设置</div>
       <div class="setrow"><span>单词数量</span><div class="segs" id="countSegs"></div></div>
       <div class="setrow"><span>下落速度</span><div class="segs" id="homeSpeedSegs"></div></div>
       <div class="setrow"><span>单词发音</span><div class="segs" id="homeSpeakSegs"></div></div>
@@ -664,7 +648,7 @@
       <div class="row" style="margin-top:12px">
         <button class="btn primary" id="btnHomeStart" style="flex:1;padding:13px">开始游戏</button>
       </div>
-      <p class="tips">点开始后先看 3 秒预习（本局 <b id="homeWordN">5</b> 个词），再进入游戏。
+      <p class="tips">点开始后先看 <b id="homePreviewS">5</b> 秒预习（本局 <b id="homeWordN">5</b> 个词，每词 1 秒），再进入游戏。
       速度在<b>开局时锁定</b>，本局结束前不会改变；错词本按用户独立保存。游戏中按 <b>ESC</b> 或顶栏 ❚❚ 可暂停。</p>
     </div>
 
@@ -680,6 +664,9 @@
 
     <div class="row">
       <input class="uinp" id="lgEmail" placeholder="邮箱" autocomplete="username" spellcheck="false">
+    </div>
+    <div class="row" style="margin-top:8px">
+      <input class="uinp" id="lgNick" maxlength="12" placeholder="昵称（首次登录请填写，排行榜显示用）" autocomplete="off">
     </div>
     <div class="row" style="margin-top:8px">
       <input class="uinp" id="lgPass" type="password" placeholder="口令（≥6 位）" autocomplete="current-password">
@@ -743,7 +730,7 @@
 <div class="overlay hide" id="ovStart">
   <div class="modal">
     <h2>本局预习</h2>
-    <p class="sub" id="startSub">下面 5 个词就是本局要用的，先扫一眼，<b>3 秒后开始</b>。</p>
+    <p class="sub" id="startSub">下面这些词就是本局要用的，先扫一眼——<b>每个词 1 秒</b>，倒计时结束自动开始。</p>
     <div class="wordlist" id="previewList"></div>
     <div class="row">
       <button class="btn primary" id="btnGo" style="flex:1">开始 <span id="cd">3</span></button>
@@ -913,8 +900,11 @@ const DEFAULT_BANK = [
    ========================================================= */
 /* ---------- 版本号 ----------
    规则：每次功能更新，版本号 +0.1（1.0 → 1.1 → 1.2 …），并在下面记一条更新记录。 */
-const APP_VERSION = "2.0";
+const APP_VERSION = "2.3";
 const VERSION_LOG = [
+  { v: "2.3", d: "本局预习时长改为按词数计算：每个词 1 秒（5 词 5 秒、6 词 6 秒、10 词 10 秒），预览文案与倒计时按钮同步显示本局实际秒数；仍可随时点「开始」提前进入。" },
+  { v: "2.2", d: "昵称与 Supabase 账号打通：昵称写入云端用户的 display_name（auth 用户元数据），登录时优先读云端昵称自动恢复，换设备、清缓存都不用重填；未连通时退回本机保存并在提示里说明。设置 →「云同步」新增「昵称」一行。" },
+  { v: "2.1", d: "流程简化：昵称改在登录页设置（首次登录填一次，绑定账号后随云同步，换设备不用重填），开始界面不再有「登记用户名」步骤；不再显示其他玩家的积分卡片（看他人积分请去 🏆 排行榜）；游戏中点 ❚❚ 暂停后，顶栏出现 🏠「返回主页面」，可放弃本局直接回主页。" },
   { v: "2.0", d: "新增积分排行榜：今日榜 / 本周榜（周一起算）/ 总榜三档，前三名上领奖台，其余按积分排列，自己那一行高亮标「我」。登录云端后全班共用一份榜（Supabase ranks 表，每局结束自动推送本人成绩）；未登录或断网时自动降级为「本机多用户排名」，不影响使用。" },
   { v: "1.9", d: "全站更名：中文「词塔」改为「辞塔」，英文「Word Tower」改为「Cita World」（标题、登录页、开始界面、设置·关于、导出存档、同步客户端与小程序文案同步更新）。存档键名（wordtower_*）、文件名与目录名保持不变，旧存档、旧部署与已有账号数据不受影响。" },
   { v: "1.8", d: "登录改为程序入口：打开页面先停在登录页（邮箱 + 口令，含注册与云端参数填写），登录后自动进入开始界面；本机会话有效时直接进入。登录成功会按数据情况自动上传或下载存档——云端为空则上传本机、本机为空则下载云端、两边都有则提示去设置里手动选择；设置里「退出」后回到登录页。" },
@@ -935,7 +925,10 @@ const MIN_WORDS = 5;         // 每局单词数量下限
 const MAX_WORDS = 10;        // 每局单词数量上限
 const NEED_PER_WORD = 3;     // 每个词累计答对 3 次即掌握
 const CLEAR_BONUS = 50;      // 通关额外积分
-const PREVIEW_SECONDS = 3;
+const PREVIEW_PER_WORD = 1;  // 预习时长：每个词 1 秒（5 词 → 5 秒，10 词 → 10 秒）
+
+/** 本局预习秒数：词数 × 每词秒数，至少 1 秒 */
+function previewSecondsFor(n) { return Math.max(1, Math.round(n * PREVIEW_PER_WORD)); }
 
 /** 本局时间上限：随词数伸缩，保证「每词答对 3 次」在时间内可完成 */
 function roundSecondsFor(n) { return 45 + n * 20; }
@@ -952,6 +945,7 @@ const SPEEDS = [
 const WRONGBOOK_KEY = "wordtower_wrongbook_v1";   // 旧版（无用户时代）错词本，仅用于首次迁移
 const WB_PREFIX = "wordtower_wrongbook_v2::";      // 每用户独立错词本：前缀 + 昵称
 const USERS_KEY = "wordtower_users_v1";            // 多用户存档（昵称 / 积分 / 学习记录）
+const PROFILE_KEY = "wordtower_profile_v1";        // 云端账号 ↔ 昵称绑定（随 wordtower_* 一起云同步）
 const WORDS_KEY = "wordtower_words_v1";            // 每局单词数量（5–10）
 const BANK_KEY = "wordtower_bank_v1";            // 旧版：只存一个导入词库，仅用于迁移
 const BANK_NAME_KEY = "wordtower_bankname_v1";   // 旧版：单词库名字，仅用于迁移
@@ -1573,7 +1567,7 @@ function recordRound(r) {
   return { points: u.points, gained: gained, user: u };
 }
 
-/* ---------- 开始界面第一步：用户名登记 ---------- */
+/* ---------- 开始界面：当前玩家摘要（自己一人的数据，其他玩家只能去排行榜看） ---------- */
 function sparkHtml(u) {
   const days = lastDays(7);
   const vals = days.map((k) => { const d = (u.days || {})[k]; return d ? (d.correct || 0) : 0; });
@@ -1586,69 +1580,39 @@ function sparkHtml(u) {
     days[6].slice(5) + "</span></div>";
 }
 
-function renderUserBox() {
-  const box = $("userBox");
-  if (!box) return;
-  const o = loadUsers();
+/** 主页「当前玩家」卡片：只显示当前玩家自己的信息，不再列出其他用户 */
+function renderHomeUser() {
+  const el = $("homeUser");
+  if (!el) return;
   const u = currentUser();
-  const chips = o.list.length
-    ? '<div class="uchips">' + o.list.map((x) =>
-        '<button class="uchip' + (u && x.name === u.name ? " on" : "") + '" data-name="' + esc(x.name) + '">' +
-        esc(x.name) + '<span class="pt">' + (x.points || 0) + '分</span>' +
-        '<span class="x" data-del="' + esc(x.name) + '" title="删除该用户">✕</span></button>').join("") + "</div>"
-    : "";
-
   if (!u) {
-    box.innerHTML =
-      '<div class="cur">第一次使用？输入一个昵称就能开始——之后<b>每个名字都有各自的积分、学习记录和错词本</b>。' +
-      (o.list.length ? "也可以点下面的名字直接进入。" : "") + "</div>" + chips;
-  } else {
-    const total = (u.correct || 0) + (u.wrong || 0);
-    const acc = total ? Math.round((u.correct / total) * 100) + "%" : "—";
-    box.innerHTML =
-      '<div class="cur">当前玩家 <b>' + esc(u.name) + "</b> · 积分 <b>" + (u.points || 0) + "</b>" +
-      '<span style="color:var(--ink-3);font-size:11px"> · 已练习 ' + (u.rounds || 0) + " 局</span></div>" +
-      '<div class="stats">' +
-        '<div class="stat2"><b>' + (u.correct || 0) + '</b><span>累计答对</span></div>' +
-        '<div class="stat2"><b>' + acc + '</b><span>正确率</span></div>' +
-        '<div class="stat2"><b>' + (u.clears || 0) + '</b><span>通关次数</span></div>' +
-        '<div class="stat2"><b>' + (u.bestCombo || 0) + '</b><span>最高连击</span></div>' +
-      "</div>" + sparkHtml(u) + chips;
+    el.innerHTML = '<div class="datarow"><span class="k">当前玩家</span><span class="v"><small>尚未建立玩家，开始一局后自动记录</small></span></div>';
+    return;
   }
-
-  box.querySelectorAll(".uchip").forEach((n) => {
-    n.addEventListener("click", (e) => {
-      const del = e.target.closest("[data-del]");
-      if (del) {
-        e.stopPropagation();
-        const nm = del.getAttribute("data-del");
-        if (confirm("删除用户「" + nm + "」？\n\n该用户的积分、学习记录和错词本会一并删除，且不可恢复。")) deleteUser(nm);
-        return;
-      }
-      switchUser(n.getAttribute("data-name"));
-    });
-  });
+  const total = (u.correct || 0) + (u.wrong || 0);
+  const acc = total ? Math.round((u.correct / total) * 100) + "%" : "—";
+  el.innerHTML =
+    '<div class="datarow"><span class="k">当前玩家</span><span class="v"><b>' + esc(u.name) +
+    "</b> · 积分 <b>" + (u.points || 0) + "</b> · 练习 " + (u.rounds || 0) + " 局</span></div>" +
+    '<div class="datarow"><span class="k">累计答对</span><span class="v">' + (u.correct || 0) +
+    " · 正确率 " + acc + " · 通关 " + (u.clears || 0) + " 次</span></div>" +
+    sparkHtml(u);
 }
 
-/** 设置面板里的「用户与积分」摘要 */
+/** 设置面板里的「用户与积分」摘要：只显示当前玩家自己的信息 */
 function renderUserStatBox() {
   const el = $("userStatBox");
   if (!el) return;
-  const o = loadUsers();
   const u = currentUser();
-  const total = o.list.length;
   if (!u) {
     el.innerHTML =
-      '<div class="datarow"><span class="k">当前用户</span><span class="v">' +
-      "<small>还没有登记用户名，去开始界面输入一个昵称</small></span></div>" +
-      (total ? '<div class="datarow"><span class="k">已有用户</span><span class="v">' +
-        total + " 个</span></div>" : "");
+      '<div class="datarow"><span class="k">当前玩家</span><span class="v">' +
+      "<small>尚未建立玩家，开始一局后自动记录</small></span></div>";
     return;
   }
   const totalAns = (u.correct || 0) + (u.wrong || 0);
   el.innerHTML = [
-    '<div class="datarow"><span class="k">当前用户</span><span class="v"><b>' + esc(u.name) +
-      "</b> <small>· 本机共 " + total + " 个用户</small></span></div>",
+    '<div class="datarow"><span class="k">当前玩家</span><span class="v"><b>' + esc(u.name) + "</b></span></div>",
     '<div class="datarow"><span class="k">积分</span><span class="v"><b>' + (u.points || 0) +
       "</b> <small>· 每局得分自动累加，通关额外 +" + CLEAR_BONUS + "</small></span></div>",
     '<div class="datarow"><span class="k">学习记录</span><span class="v">' + (u.rounds || 0) + " 局 · 答对 " +
@@ -1908,11 +1872,12 @@ function startRound(opts) {
       <div class="en">${esc(c.w)}<small>${esc(c.p || "")}</small></div>
       <div class="cn">${esc(c.m)}</div>
     </div>`).join("");
-  $("startSub").innerHTML = "下面 " + COLS + " 个词就是本局要用的，先扫一眼，<b>3 秒后开始</b>。" +
-    "本局每个词累计答对 <b>" + NEED_PER_WORD + " 次</b>即可通关。";
+  const secs = previewSecondsFor(COLS);
+  $("startSub").innerHTML = "下面 " + COLS + " 个词就是本局要用的，先扫一眼——<b>" + secs + " 秒后开始</b>" +
+    "（每词 1 秒）。本局每个词累计答对 <b>" + NEED_PER_WORD + " 次</b>即可通关。";
 
   $("ovStart").classList.remove("hide");
-  let n = PREVIEW_SECONDS;
+  let n = secs;
   $("cd").textContent = n;
   clearInterval(startRound._t);
   startRound._t = setInterval(() => {
@@ -2124,6 +2089,7 @@ function endRound(reason, cleared) {
   S.phase = "over";
   S.cleared = !!cleared;
   stopSpeak();                       // 本局结束 → 停止朗读
+  $("btnQuit").classList.add("hide");   // 结束后隐藏「返回主页面」
   const total = S.correct + S.wrong;
   const used = Math.max(0, Math.round(roundSecondsFor(COLS) - S.timeLeft));
   $("overTitle").textContent = cleared ? "🎉 通关！" : (reason || "本局结束");
@@ -2142,7 +2108,7 @@ function endRound(reason, cleared) {
   $("overPoints").innerHTML = rec
     ? "本局得分 <b>" + S.score + "</b>" + (cleared ? " + 通关奖励 <b>" + CLEAR_BONUS + "</b>" : "") +
       " → 「" + esc(rec.user.name) + "」累计积分 <b>" + rec.points + "</b>"
-    : "还没有登记用户名，本局成绩未计入积分。去开始界面输入昵称后即可自动累计。";
+    : "还没有玩家档案，本局成绩未计入积分。";
   renderSpeedUI();
   pushMyRank();                      // 本局成绩同步进排行榜（未登录/离线时静默跳过）
 
@@ -3347,17 +3313,12 @@ function chooseBank(key) {
   startRound({ review: key === "wrong" });
 }
 
-/** 开始界面：① 用户名登记 ② 选择词库 ③ 本局设置 */
+/** 开始界面：当前玩家 → 选择词库 → 本局设置（昵称在登录时设置，这里不再登记） */
 function renderHome() {
   normalizeBankSource();
-  const u = currentUser();
+  renderHomeUser();
 
-  // ① 用户名：没登记前只显示第一步，避免跳过登记直接开局
-  renderUserBox();
-  $("homeSetup").style.display = u ? "" : "none";
-  $("userEnterRow").style.display = u ? "none" : "";
-
-  // ② 词库：内置 + 每个导入词库各一行 + 错词库
+  // 词库：内置 + 每个导入词库各一行 + 错词库
   $("homeBanks").innerHTML = bankListHtml("home");
   $("homeBanks").querySelectorAll(".bankopt").forEach((n) => {
     n.addEventListener("click", () => {
@@ -3365,7 +3326,7 @@ function renderHome() {
     });
   });
 
-  // ③ 本局设置
+  // 本局设置
   renderCountUI();
   renderHomeSpeedUI();
   renderHomeGoal();
@@ -3385,6 +3346,7 @@ function openHome() {
   $("ovStart").classList.add("hide");
   $("ovConvert").classList.add("hide");
   $("ovBusy").classList.add("hide");
+  $("btnQuit").classList.add("hide");
   // 回到开始界面 = 上一局已结束：清掉局内进度，顶部目标条显示「0 / 待开局的词数」
   S.columns = [];
   S.mastery = {};
@@ -3394,32 +3356,9 @@ function openHome() {
 }
 
 function startFromHome() {
-  if (!currentUser()) {          // 必须先登记用户名
-    const el = $("userInput");
-    if (el) { el.focus(); el.placeholder = "先输入昵称，再点「进入」"; }
-    return;
-  }
   $("ovHome").classList.add("hide");
   startRound({ review: bankSource === "wrong" });
 }
-
-/* ---------- 用户名登记交互 ---------- */
-function submitUserName() {
-  const el = $("userInput");
-  const r = registerUser(el ? el.value : "");
-  if (!r.ok) { alert(r.msg); if (el) el.focus(); return; }
-  if (el) el.value = "";
-  renderHome();
-  if (r.created) {
-    // 新用户：把焦点交给开始按钮，回车即可开局
-    const b = $("btnHomeStart");
-    if (b) b.focus();
-  }
-}
-$("btnUserName").addEventListener("click", submitUserName);
-$("userInput").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") { e.preventDefault(); submitUserName(); }
-});
 
 $("btnImport").addEventListener("click", () => $("fileInput").click());
 $("fileInput").addEventListener("change", (e) => {
@@ -3511,7 +3450,7 @@ function setWordCount(n) {
   }
 }
 
-/** 开始界面第三步：本局目标说明 */
+/** 开始界面：本局目标说明 */
 function renderHomeGoal() {
   const el = $("homeGoal");
   if (!el) return;
@@ -3532,6 +3471,8 @@ function renderHomeGoal() {
     notes.map((s) => "<small>" + esc(s) + "</small>").join("");
   const wn = $("homeWordN");
   if (wn) wn.textContent = String(want);
+  const wp = $("homePreviewS");
+  if (wp) wp.textContent = String(previewSecondsFor(want));
 }
 
 /** 当前所选词库里有多少个互不相似的可玩词条 */
@@ -3732,6 +3673,7 @@ async function cloudRender(note, isErr) {
   }
   let email = null;
   try { email = await SupaSync.email(); } catch (e) { /* 未登录或离线 */ }
+  const nick = email ? localNick(email) : "";
   const url = SupaSync.projectUrl();
   const sum = SupaSync.summary();
   box.innerHTML =
@@ -3739,6 +3681,9 @@ async function cloudRender(note, isErr) {
       (url ? esc(url) : '<span class="pill off">未配置</span>') + "</span></div>" +
     '<div class="datarow"><span class="k">登录账号</span><span class="v">' +
       (email ? esc(email) : '<span class="pill off">未登录</span>') + "</span></div>" +
+    '<div class="datarow"><span class="k">昵称</span><span class="v">' +
+      (nick ? esc(nick) + " <small>· Supabase display_name</small>" : (email ? "<small>尚未绑定</small>" : "—")) +
+      "</span></div>" +
     '<div class="datarow"><span class="k">本机存档</span><span class="v">' +
       sum.users + " 个用户 · " + sum.banks + " 个导入词库</span></div>";
 }
@@ -3925,6 +3870,67 @@ async function afterLoginSync() {
 
 $("lgSetToggle").addEventListener("click", () => $("lgSetBox").classList.toggle("open"));
 
+/* ---------- 账号 ↔ 昵称绑定（v2.1） ----------
+   昵称在登录页设置，绑定后随 wordtower_* 云同步，换设备自动带过来。
+   同一账号换设备 / 清缓存后重新登录，不需要再填昵称。 */
+function loadProfile() {
+  try { const o = JSON.parse(LS.get(PROFILE_KEY) || ""); if (o && o.email) return o; } catch (e) {}
+  return null;
+}
+
+/** 返回该账号已绑定的昵称；没有则用输入的昵称绑定。都没有 → null（提示要填） */
+function bindNick(email, nickInput) {
+  const em = String(email || "").trim().toLowerCase();
+  const prof = loadProfile();
+  if (prof && String(prof.email).toLowerCase() === em && prof.nick) return prof.nick;
+  const n = normalizeName(nickInput);
+  if (!n) return null;
+  saveProfile(email, n);
+  return n;
+}
+
+function saveProfile(email, nick) {
+  const em = String(email || "").trim().toLowerCase();
+  LS.set(PROFILE_KEY, JSON.stringify({ email: em, nick: nick, ts: Date.now() }));
+}
+
+/** 从 supabase 用户对象里取云端昵称（display_name 优先，兼容 nickname） */
+function cloudNick(user) {
+  const m = (user && user.user_metadata) || {};
+  const n = String(m.display_name || m.nickname || "").trim();
+  return n ? n.slice(0, 32) : "";
+}
+
+/** 本地已绑定昵称（用于设置面板展示 & 离线时兜底） */
+function localNick(email) {
+  const p = loadProfile();
+  if (!p) return "";
+  if (email && String(p.email).toLowerCase() !== String(email).toLowerCase()) return "";
+  return p.nick || "";
+}
+
+/**
+ * 登录/注册成功后统一处理昵称（v2.2）：
+ *   ① 云端 display_name 有值 → 以云端为准，回写本机
+ *   ② 云端没有 → 用本机已绑定的，或登录页填写的，然后写进云端 display_name
+ * 返回 { nick, note }；昵称缺失（首次且没填）返回 null
+ */
+async function resolveNick(user, email, nickInput) {
+  const cloud = cloudNick(user);
+  if (cloud) {
+    saveProfile(email, cloud);
+    return { nick: cloud, note: "昵称取自云端 display_name" };
+  }
+  const nick = bindNick(email, nickInput);
+  if (!nick) return null;
+  try {
+    await SupaSync.setDisplayName(nick);
+    return { nick: nick, note: "昵称已写入云端 display_name" };
+  } catch (e) {
+    return { nick: nick, note: "昵称已存本机，云端写入失败（" + ((e && e.message) || e) + "）" };
+  }
+}
+
 $("btnLgSave").addEventListener("click", async () => {
   LG_MSG("保存中…");
   try {
@@ -3944,9 +3950,13 @@ $("btnLgLogin").addEventListener("click", () => lgRun(async () => {
   const r = await SupaSync.login(email, $("lgPass").value);
   const who = (r && r.user && r.user.email) || email;
   $("sbEmail").value = who;                    // 设置面板同步显示同一账号
-  const info = await afterLoginSync();
+  const info = await afterLoginSync();          // 先同步（云端存档里可能带着已绑定的昵称）
+  const nb = await resolveNick(r && r.user, who, $("lgNick").value);
+  if (!nb) return { msg: "登录成功，但这是该账号第一次使用：请填写「昵称」（排行榜显示用）再点一次登录。" };
+  registerUser(nb.nick);
+  $("lgNick").value = "";
   pushMyRank();                                // 登录后把本机成绩补推一次排行榜
-  return { msg: "登录成功：" + who + info, done: true };
+  return { msg: "登录成功：" + who + "（" + nb.nick + " · " + nb.note + "）" + info, done: true };
 }));
 
 $("btnLgRegister").addEventListener("click", () => lgRun(async () => {
@@ -3957,11 +3967,19 @@ $("btnLgRegister").addEventListener("click", () => lgRun(async () => {
   }
   $("sbEmail").value = email;
   const info = await afterLoginSync();
+  const nb = await resolveNick(r && r.user, email, $("lgNick").value);
+  if (!nb) return { msg: "注册成功，但请先填写「昵称」（排行榜显示用）再点一次注册完成绑定。" };
+  registerUser(nb.nick);
+  $("lgNick").value = "";
   pushMyRank();                                // 注册后同样补推一次排行榜
-  return { msg: "注册成功：" + email + info, done: true };
+  return { msg: "注册成功：" + email + "（" + nb.nick + " · " + nb.note + "）" + info, done: true };
 }));
 
-$("btnLgSkip").addEventListener("click", () => { LG_MSG(""); enterApp(); });
+$("btnLgSkip").addEventListener("click", () => {
+  LG_MSG("");
+  if (!currentUser()) registerUser("游客");     // 游客也自动建档，成绩照常累计（仅本机）
+  enterApp();
+});
 
 /* =========================================================
    13.8 积分排行榜（v2.0）
@@ -4200,7 +4218,7 @@ document.addEventListener("keydown", (e) => {
   // 开始界面上按回车 / 空格 = 开始游戏（正在输入昵称时交给输入框自己处理）
   if (!$("ovHome").classList.contains("hide")) {
     const ae = document.activeElement;
-    if (ae && (ae.id === "userInput" || ae.tagName === "INPUT")) return;
+    if (ae && ae.tagName === "INPUT") return;
     if (e.key === "Enter" || e.key === " ") { startFromHome(); e.preventDefault(); }
     return;
   }
@@ -4211,12 +4229,25 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === " " || e.key === "Enter") { dropToBottom(); e.preventDefault(); }
 });
 
+/** 放弃本局返回主页面（v2.1）：不记分、不进结算，直接回开始界面 */
+function quitToHome() {
+  stopSpeak();
+  clearInterval(startRound._t);        // 预览倒计时也要停掉
+  S.phase = "idle";                    // loop 只跑 playing/paused，置 idle 即停
+  $("btnPause").textContent = "❚❚";
+  $("btnQuit").classList.add("hide");
+  openHome();
+}
+$("btnQuit").addEventListener("click", quitToHome);
+
 $("btnPause").addEventListener("click", () => {
   if (S.phase === "playing") {
     S.phase = "paused"; $("btnPause").textContent = "▶";
+    $("btnQuit").classList.remove("hide");   // 暂停时提供「返回主页面」入口
     stopSpeak();                     // 暂停 → 停读
   } else if (S.phase === "paused") {
     S.phase = "playing"; S.lastTs = 0; $("btnPause").textContent = "❚❚";
+    $("btnQuit").classList.add("hide");
     if (S.piece) speakWord(S.piece.w, _speakToken);   // 继续 → 接着读当前词
     requestAnimationFrame(loop);
   }

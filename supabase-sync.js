@@ -86,6 +86,13 @@
     return res;
   }
 
+  /** 从 auth 用户对象里取昵称：display_name 优先，兼容 nickname / user_name；没有返回 null */
+  function pickMetaName(u) {
+    var m = (u && u.user_metadata) || {};
+    var n = String(m.display_name || m.nickname || m.user_name || '').trim();
+    return n ? n.slice(0, 32) : null;
+  }
+
   async function requireUser() {
     var sb = getSB();
     var res = await sb.auth.getUser();
@@ -209,6 +216,30 @@
       } catch (e) {
         return null;
       }
+    },
+
+    /**
+     * 读取昵称：Supabase 用户元数据里的 display_name（v2.2）。
+     * 优先 display_name，兼容旧账号可能写过的 nickname；都没有返回 null。
+     */
+    displayName: async function () {
+      try {
+        var sb = getSB();
+        var res = supaErr(await sb.auth.getUser());
+        var u = res.data && res.data.user;
+        return pickMetaName(u);
+      } catch (e) {
+        return null;
+      }
+    },
+
+    /** 把昵称写到云端 display_name（登录后调用；失败抛错，由调用方决定是否降级） */
+    setDisplayName: async function (nick) {
+      var sb = getSB();
+      var n = String(nick == null ? '' : nick).trim().slice(0, 32);
+      if (!n) throw err('bad_input', '昵称不能为空');
+      var res = supaErr(await sb.auth.updateUser({ data: { display_name: n } }));
+      return { nick: n, user: res.data && res.data.user };
     },
 
     pull: async function () {
