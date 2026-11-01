@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 构建：原型 citaworld.html v2.11 · 2026-11-01T06:19:31.682Z · 由 工具/同步站点.js 自动生成，请勿手改 -->
+<!-- 构建：原型 citaworld.html v2.12 · 2026-11-01T06:30:24.817Z · 由 工具/同步站点.js 自动生成，请勿手改 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -232,10 +232,11 @@
   .kpi .l{font-size:10.5px;color:var(--ink-3);margin-top:2px}
   .tag{display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;background:#eef1fb;color:var(--brand);margin-right:5px}
   /* ---------- 排行榜（v2.0） ---------- */
-  .rankbox{background:var(--card);border-radius:20px;padding:0;overflow:hidden}
+  .rankbox{background:var(--card);border-radius:20px;padding:0;overflow-y:auto;overflow-x:hidden;
+    overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
   .rankhero{
     background:linear-gradient(160deg,#2a3a8f,#3552c7 55%,#4a63e7);
-    color:#fff;padding:14px 16px 16px;position:relative;
+    color:#fff;padding:14px 16px 16px;position:relative;border-radius:20px 20px 0 0;
   }
   .rankhero h2{margin:0;font-size:16px;font-weight:800;letter-spacing:.02em;display:flex;align-items:center;justify-content:space-between}
   .rankhero h2 b{font-weight:800}
@@ -264,7 +265,7 @@
     content:"";position:absolute;left:50%;bottom:0;transform:translateX(-50%);
     width:26px;height:3px;border-radius:3px;background:var(--brand);
   }
-  .ranklist{padding:10px 12px 4px;max-height:44vh;overflow:auto}
+  .ranklist{padding:10px 12px 4px;max-height:34vh;overflow:auto;overscroll-behavior:contain}
   .rkrow{
     display:flex;align-items:center;gap:10px;padding:9px 10px;margin-bottom:7px;
     background:#f7f9fe;border:1px solid var(--line);border-radius:12px;
@@ -291,7 +292,8 @@
     border:1.4px solid var(--line);border-radius:10px;text-align:left;word-break:break-all}
   .rdiag .rok{color:#0a8f4c;font-weight:700}
   .rdiag .rbad{color:#d63333;font-weight:700}
-  .rankfoot{padding:0 16px 16px}
+  .rankfoot{padding:8px 16px 16px;position:sticky;bottom:0;z-index:2;
+    background:var(--card);border-top:1px solid var(--line)}
 
   .bankopt{
     display:flex;align-items:center;gap:10px;padding:10px 11px;margin-bottom:7px;
@@ -909,8 +911,9 @@ const DEFAULT_BANK = [
    ========================================================= */
 /* ---------- 版本号 ----------
    规则：每次功能更新，版本号 +0.1（1.0 → 1.1 → 1.2 …），并在下面记一条更新记录。 */
-const APP_VERSION = "2.11";
+const APP_VERSION = "2.12";
 const VERSION_LOG = [
+  { v: "2.12", d: "排行榜弹层不再被「切掉」：修掉内容超高时无法滚动的样式冲突（弹层被强制 overflow:hidden），现在整个弹层可上下滚动，顶部渐变保持圆角、底部「刷新 / 关闭」按钮吸底常驻；榜单单列高度略收窄（44vh → 34vh）给下方按钮留位置。诊断结果出现后会自动滚进视野，短屏幕也不再看不到下面的选项。" },
   { v: "2.11", d: "诊断能分清「网络不通」的三种原因了：先用 Supabase 官方健康检查接口探测——项目已休眠（免费版一周无活动，HTTP 540）、服务异常、还是网络不通，各给对应提示；网络失败时诊断区直接出现「🌐 打开 Supabase 控制台」按钮，一键直达项目页点 Restore 恢复。网络不通的提示还补充了国内直连 supabase.co 受限的说明与 Cloudflare 备选方案。" },
   { v: "2.10", d: "排行榜新增「🔍 诊断连接」：点一下就逐项检查云端链路——① 云端参数是否配置 ② 网络可达、是否登录 ③ 排行榜表 public.ranks 是否可读，结果直接写在榜单里；四项全过还会自动把本机最新成绩补推上去并刷新榜单。到底断在哪一环，不用再猜。" },
   { v: "2.9", d: "排行榜修表不用再找文件：云端提示「未启用排行榜表」时，面板里直接出现「📋 一键复制修复 SQL」按钮，点一下把补建 ranks 表的完整 SQL 复制到剪贴板，去 Supabase 控制台 SQL Editor 粘贴运行即可（与 远程同步/sql-升级-排行榜.sql 内容一致，本地打开也能复制）。" },
@@ -4232,6 +4235,8 @@ async function runRankDiagnose() {
     }
     box.innerHTML = html;
     rankDiagRunning = false;
+    // 内容变长时把结果滚进视野（弹层可滚动，v2.12）
+    try { box.scrollIntoView({ block: "nearest" }); } catch (e) {}
   }
 }
 
