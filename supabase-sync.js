@@ -101,11 +101,59 @@
     // 这里统一翻译成 not_logged_in，界面才提示得清楚（否则会显示英文原始报错）
     if (!u) throw err('not_logged_in', '未登录或会话已过期，请先登录', { cause: res && res.error });
     supaErr(res);
+    // 换了账号（A 退出 → B 登录）时，缓存里的旧 token 必须作废，否则离场推送会串号
+    if (sessionCache.uid && sessionCache.uid !== u.id) sessionCache.token = '';
+    sessionCache.uid = u.id || sessionCache.uid;
+    sessionCache.email = u.email || sessionCache.email;
     return u;
   }
 
   function markPulled() {
     store.set(PULLED_KEY, String(Date.now()));
+  }
+
+  /* ---------- 登录态缓存（v2.13） ----------
+     离开页面（pagehide / beforeunload / 切后台）的那一瞬间不可能再 await 任何东西，
+     所以这里留一份「user id + access token」，离开时用 keepalive 裸 fetch 直接发请求。
+     缓存只在成功通信后写入，不会落盘（token 已经在 supabase-js 自己的 storage 里）。 */
+  var sessionCache = { uid: '', token: '', email: '' };
+
+  async function rememberSession() {
+    try {
+      var sb = getSB();
+      var res = await sb.auth.getSession();
+      var s = res && res.data && res.data.session;
+      if (s && s.access_token) {
+        sessionCache.token = s.access_token;
+        sessionCache.uid = (s.user && s.user.id) || sessionCache.uid;
+        sessionCache.email = (s.user && s.user.email) || sessionCache.email;
+      }
+      return !!sessionCache.token;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function num(v) {
+    var n = Number(v);
+    return isFinite(n) ? Math.max(0, Math.round(n)) : 0;
+  }
+
+  /**
+   * 组装某人的三行成绩（总榜 / 今日榜 / 本周榜）。
+   * 普通推送与离场推送共用，保证两条路径写进去的数据完全一样。
+   */
+  function rankRowsFor(p, uid) {
+    p = p || {};
+    var nm = String(p.name || '').slice(0, 12);
+    return [
+      { user_id: uid, scope: 'total', pkey: 'all', name: nm,
+        points: num(p.total), rounds: num(p.rounds) },
+      { user_id: uid, scope: 'day', pkey: String(p.day || ''), name: nm,
+        points: num(p.today), rounds: num(p.todayRounds) },
+      { user_id: uid, scope: 'week', pkey: String(p.week || ''), name: nm,
+        points: num(p.weekPoints), rounds: num(p.weekRounds) },
+    ];
   }
 
   function collect() {
@@ -214,17 +262,22 @@
       var res = supaErr(await sb.auth.signUp({ email: email, password: pass }));
       var u = res.data && res.data.user;
       markPulled();
+      if (res.data && res.data.session) await rememberSession();
       return { needsConfirm: !!(u && !res.data.session), user: u };
     },
     login: async function (email, pass) {
       var sb = getSB();
       var res = supaErr(await sb.auth.signInWithPassword({ email: email, password: pass }));
       markPulled();
+      await rememberSession();      // 先备好 token，离场推送才用得上
       return { user: res.data.user };
     },
     logout: async function () {
       var sb = getSB();
       var online = true;
+      sessionCache.uid = '';
+      sessionCache.token = '';
+      sessionCache.email = '';
       try {
         await sb.auth.signOut();            // 默认 scope=global：会请求服务器
       } catch (e) {
@@ -422,21 +475,66 @@
      * p = { name, total, rounds, day, today, todayRounds, week, weekPoints, weekRounds }
      * day/week 由客户端按本地时区算好（day: '2026-10-31'，week: '2026-W44'）。
      * 一次 upsert 三行：总榜 / 今日榜 / 本周榜。
+     * v2.13：顺手把 user id + token 记进内存缓存，供离场时的 keepalive 推送使用。
      */
     pushRank: async function (p) {
       var sb = getSB();
       var u = await requireUser();
-      var nm = String((p && p.name) || '').slice(0, 12);
-      var rows = [
-        { user_id: u.id, scope: 'total', pkey: 'all', name: nm,
-          points: Math.max(0, p.total | 0), rounds: Math.max(0, p.rounds | 0) },
-        { user_id: u.id, scope: 'day', pkey: p.day, name: nm,
-          points: Math.max(0, p.today | 0), rounds: Math.max(0, p.todayRounds | 0) },
-        { user_id: u.id, scope: 'week', pkey: p.week, name: nm,
-          points: Math.max(0, p.weekPoints | 0), rounds: Math.max(0, p.weekRounds | 0) },
-      ];
+      if (!sessionCache.token) await rememberSession();
+      var rows = rankRowsFor(p, u.id);
       supaErr(await sb.from('ranks').upsert(rows));
       return true;
+    },
+
+    /** 缓存里是否已有可用的「本人 id + token」（离场推送的前提，不发网络请求） */
+    beaconReady: function () {
+      return !!(sessionCache.uid && sessionCache.token && (url || store.get(URL_KEY)));
+    },
+
+    /** 缓存里的当前用户（诊断 / 界面展示用） */
+    cachedUser: function () {
+      return { id: sessionCache.uid || null, email: sessionCache.email || null };
+    },
+
+    /** 主动刷新一次登录态缓存（登录成功后调用） */
+    rememberSession: rememberSession,
+
+    /**
+     * 离场推送（v2.13）：页面正在关闭 / 切后台时用 keepalive 裸 fetch 直接写 ranks 表。
+     *
+     * 为什么不复用 supabase-js：它的 upsert 是 async 链，等到能发请求时页面可能已被冻结；
+     * keepalive 请求即使页面销毁也会由浏览器继续发完。因此这里用缓存的 token 手工拼请求，
+     * 与 pushRank 写的是同一批行（rankRowsFor），不会出现「两条路径数据不一致」。
+     * 永远 resolve，不抛错：结果是 { ok, status, reason }，调用方据此决定要不要留重试标记。
+     */
+    pushRankBeacon: function (p) {
+      var u = url || store.get(URL_KEY) || '';
+      var k = anonKey || store.get(KEY_KEY) || '';
+      if (!u || !k || !sessionCache.token || !sessionCache.uid) {
+        return Promise.resolve({ ok: false, reason: 'not_signed_in' });
+      }
+      var body = JSON.stringify(rankRowsFor(p, sessionCache.uid));
+      var done = function (res) {
+        var good = !!(res && (res.ok || res.status === 201 || res.status === 204));
+        return { ok: good, status: (res && res.status) || 0, reason: good ? '' : 'http_' + ((res && res.status) || 0) };
+      };
+      try {
+        return fetch(u + '/rest/v1/ranks', {
+          method: 'POST',
+          keepalive: true,
+          headers: {
+            apikey: k,
+            Authorization: 'Bearer ' + sessionCache.token,
+            'Content-Type': 'application/json',
+            Prefer: 'resolution=merge-duplicates,return=minimal',
+          },
+          body: body,
+        }).then(done, function (e) {
+          return { ok: false, reason: 'network', error: (e && e.message) || String(e) };
+        });
+      } catch (e2) {
+        return Promise.resolve({ ok: false, reason: 'network', error: (e2 && e2.message) || String(e2) });
+      }
     },
 
     /**

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 构建：原型 citaworld.html v2.12 · 2026-11-01T06:30:24.817Z · 由 工具/同步站点.js 自动生成，请勿手改 -->
+<!-- 构建：原型 citaworld.html v2.14 · 2026-11-01T07:17:50.142Z · 由 工具/同步站点.js 自动生成，请勿手改 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -294,6 +294,11 @@
   .rdiag .rbad{color:#d63333;font-weight:700}
   .rankfoot{padding:8px 16px 16px;position:sticky;bottom:0;z-index:2;
     background:var(--card);border-top:1px solid var(--line)}
+  /* v2.13：离场自动上传 —— 底部上传行 + 提示 */
+  .rup{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+  .rupbtn{margin-top:0}
+  .rupstat{font-size:10px;color:var(--ink-3);line-height:1.4}
+  .rwarn{color:#b3541e}
 
   .bankopt{
     display:flex;align-items:center;gap:10px;padding:10px 11px;margin-bottom:7px;
@@ -426,6 +431,14 @@
     padding:8px 11px;font-size:11.5px;font-weight:700;color:var(--brand);line-height:1.6;
   }
   .goalbar b{font-variant-numeric:tabular-nums}
+  /* v2.14：结算面板的「本局成绩已上传」状态行 */
+  .overcloud{font-size:11px;line-height:1.6;padding:7px 11px;margin:-4px 0 12px;border-radius:10px;
+    border:1px solid var(--line);background:#f7f9fe;color:var(--ink-3)}
+  .overcloud:empty{display:none}
+  .overcloud.wait{color:var(--ink-2)}
+  .overcloud.ok{color:#0a8f4c;border-color:#bfe7cf;background:#f0fbf4}
+  .overcloud.bad{color:#b3541e;border-color:#f0d8c2;background:#fdf6ef}
+  .overcloud.miss{color:var(--ink-3);border-style:dashed}
   .goalbar small{font-weight:600;color:var(--ink-3);display:block;margin-top:3px}
 
   /* ---------- 局内目标进度 ---------- */
@@ -759,6 +772,7 @@
       <div class="kpi"><div class="v" id="kCombo">0</div><div class="l">最高连击</div></div>
     </div>
     <div class="goalbar" id="overPoints" style="margin:0 0 12px"></div>
+    <div class="overcloud" id="overCloud"></div>
     <h3 style="font-size:13px;margin:4px 0">本局错词（已存入错词本）</h3>
     <div class="wordlist" id="overWrong"></div>
     <div class="row">
@@ -801,6 +815,10 @@
     <div class="ranksrc" id="rankSrc"></div>
     <div class="rdiag hide" id="rankDiag"></div>
     <div class="rankfoot">
+      <div class="rup">
+        <button class="rfixbtn rupbtn" id="btnRankUpload">⬆️ 立即上传我的成绩</button>
+        <span class="rupstat" id="rankUpStat">还没上传过</span>
+      </div>
       <div class="row">
         <button class="btn primary" id="btnRankRefresh" style="flex:1">刷新</button>
         <button class="btn" id="btnRankClose">关闭</button>
@@ -911,8 +929,10 @@ const DEFAULT_BANK = [
    ========================================================= */
 /* ---------- 版本号 ----------
    规则：每次功能更新，版本号 +0.1（1.0 → 1.1 → 1.2 …），并在下面记一条更新记录。 */
-const APP_VERSION = "2.12";
+const APP_VERSION = "2.14";
 const VERSION_LOG = [
+  { v: "2.14", d: "每局打完立刻上传积分：结算面板出现一行「☁️」状态——正在上传 → 已上传排行榜（累计 / 今日积分 + 上传时间），或「上传失败：原因」并说明离开游戏时会自动重试。不用再等下局、也不用等离开页面，通关结算的同一秒成绩就进了云端数据库；未配置云端或没登录时直说「只记在本机」，不会假装上传成功。" },
+  { v: "2.13", d: "积分改为「离开即上传」：每局结束、切后台、关页面、刷新时都会把本人今日 / 本周 / 累计积分写进云端 public.ranks（关页面那次用 keepalive 请求，页面被关掉也能发完）；万一没发成功，本机会留一个待上传标记，下次打开页面或登录后自动补推。排行榜页面变成纯读取——只从数据库读，不再在客户端临时拼数据，也新增「⬆️ 立即上传我的成绩」按钮和「上次上传时间」，榜上看不到自己时直接点名原因。" },
   { v: "2.12", d: "排行榜弹层不再被「切掉」：修掉内容超高时无法滚动的样式冲突（弹层被强制 overflow:hidden），现在整个弹层可上下滚动，顶部渐变保持圆角、底部「刷新 / 关闭」按钮吸底常驻；榜单单列高度略收窄（44vh → 34vh）给下方按钮留位置。诊断结果出现后会自动滚进视野，短屏幕也不再看不到下面的选项。" },
   { v: "2.11", d: "诊断能分清「网络不通」的三种原因了：先用 Supabase 官方健康检查接口探测——项目已休眠（免费版一周无活动，HTTP 540）、服务异常、还是网络不通，各给对应提示；网络失败时诊断区直接出现「🌐 打开 Supabase 控制台」按钮，一键直达项目页点 Restore 恢复。网络不通的提示还补充了国内直连 supabase.co 受限的说明与 Cloudflare 备选方案。" },
   { v: "2.10", d: "排行榜新增「🔍 诊断连接」：点一下就逐项检查云端链路——① 云端参数是否配置 ② 网络可达、是否登录 ③ 排行榜表 public.ranks 是否可读，结果直接写在榜单里；四项全过还会自动把本机最新成绩补推上去并刷新榜单。到底断在哪一环，不用再猜。" },
@@ -2130,7 +2150,7 @@ function endRound(reason, cleared) {
       " → 「" + esc(rec.user.name) + "」累计积分 <b>" + rec.points + "</b>"
     : "还没有玩家档案，本局成绩未计入积分。";
   renderSpeedUI();
-  pushMyRank();                      // 本局成绩同步进排行榜（未登录/离线时静默跳过）
+  uploadRoundScore();                // 一局打完立刻上传积分到排行榜（v2.14，结果显示在结算面板）
 
   const seen = {}, list = [], now = Date.now();
   wrongBookSorted().forEach((x) => {
@@ -3847,6 +3867,8 @@ function enterApp() {
 function bootEntry() {
   $("verLogin").textContent = "v" + APP_VERSION;
   renderHome();                 // 先把主页内容渲染好（即使被登录页遮住）
+  installRankLeaveHooks();      // 离开游戏（切后台 / 关页面）→ 上传积分（v2.13）
+  retryPendingRank();           // 上次没发出去的成绩，开机先补一次
   if (hasLocalSession()) enterApp();
   else showLogin();
 }
@@ -4014,7 +4036,7 @@ $("btnLgLogin").addEventListener("click", () => lgRun(async () => {
   if (!nb) return { msg: "登录成功，但这是该账号第一次使用：请填写「昵称」（排行榜显示用）再点一次登录。" };
   registerUser(nb.nick);
   $("lgNick").value = "";
-  pushMyRank();                                // 登录后把本机成绩补推一次排行榜
+  pushMyRank("login");                          // 登录后把本机成绩补推一次排行榜
   return { msg: "登录成功：" + who + "（" + nb.nick + " · " + nb.note + "）" + info, done: true };
 }));
 
@@ -4032,7 +4054,7 @@ $("btnLgRegister").addEventListener("click", () => lgRun(async () => {
   if (!nb) return { msg: "注册成功，但请先填写「昵称」（排行榜显示用）再点一次注册完成绑定。" };
   registerUser(nb.nick);
   $("lgNick").value = "";
-  pushMyRank();                                // 注册后同样补推一次排行榜
+  pushMyRank("register");                       // 注册后同样补推一次排行榜
   return { msg: "注册成功：" + email + "（" + nb.nick + " · " + nb.note + "）" + info, done: true };
 }));
 
@@ -4062,6 +4084,7 @@ let rankRows = [];
 let rankSource = "local";     // local | cloud
 let rankNote = "";
 let rankPushErr = "";         // 最近一次「推送成绩到云端」的失败原因（推送是静默的，开榜时展示）
+let rankSelfMissing = false;  // 云端榜里没有我，但本机有积分（还没上传，v2.13）
 
 /** ISO 8601 周键：'2026-W44'（周一为一周第一天） */
 function weekKey(ts) {
@@ -4130,12 +4153,24 @@ function initial(name) {
 
 function renderRankSrc() {
   const tip = rankSource === "cloud"
-    ? "数据来自云端排行榜：登录同一云端账号的人都会出现在这里，换设备也一致"
+    ? "数据来源：云端数据库 public.ranks（只读）。每次离开游戏——切后台、关页面、刷新——都会把本人今日 / 本周 / 累计积分自动上传，所以同一账号换设备看到的榜一致"
     : "本机模式：只统计这台设备上登记过的用户名，登录后可和同学一起排名";
   const needsFix = rankNote && rankNote.indexOf("sql-升级-排行榜.sql") >= 0;
-  $("rankSrc").innerHTML = esc(tip) + (rankNote ? '<br>' + esc(rankNote) : "") +
+  let extra = "";
+  if (rankSelfMissing) {
+    const s = statFor(currentUser(), rankTab);
+    extra += '<br><span class="rwarn">你本机这一榜有 ' + s.points + " 分还没写进数据库（" +
+      esc(rankUnit(rankTab)).replace("分/", "") + "），点下面「⬆️ 立即上传我的成绩」即可上榜</span>";
+  }
+  const pend = rankPendingInfo();
+  if (pend) {
+    extra += '<br><span class="rwarn">⚠ 上次离开时的成绩还没确认上传成功，会自动重试；也可以点「立即上传」</span>';
+  }
+  $("rankSrc").innerHTML = esc(tip) + (rankNote ? "<br>" + esc(rankNote) : "") + extra +
     (needsFix ? '<br><button id="btnRankFix" class="rfixbtn">📋 一键复制修复 SQL</button>' : "") +
     '<br><button id="btnRankDiag" class="rfixbtn">🔍 诊断连接</button>';
+  const st = $("rankUpStat");
+  if (st) st.textContent = rankUpStatText() + (rankPendingInfo() ? " · 有成绩待上传" : "");
 }
 
 /**
@@ -4357,11 +4392,15 @@ function rankFriendlyErr(msg) {
   return s;
 }
 
-/** 拉取某个榜的数据：云端优先，失败降级本机 */
+/**
+ * 拉取某个榜的数据（v2.13：只读数据库，不再在本机拼成绩）。
+ * 云端优先，失败降级本机；云端可读但我这一榜没有行 → 只提示「还没上传」，不伪造数据。
+ */
 async function loadRankRows(tab) {
   rankTab = tab;
   const me = currentUserName();
   const pkey = rankPkey(tab);
+  rankSelfMissing = false;
   try {
     if (window.SupaSync && SupaSync.credsReady && SupaSync.credsReady() && SupaSync.fetchRanks) {
       const rows = await SupaSync.fetchRanks(tab, pkey, 50);
@@ -4373,13 +4412,9 @@ async function loadRankRows(tab) {
         rounds: Number(r.rounds) || 0,
         me: !!lo && String(r.name || "").toLowerCase() === lo,
       }));
-      // 自己还没推过 → 用本机成绩补一行，避免「榜上看不到自己」
       if (!mine.length && me) {
         const s = statFor(currentUser(), tab);
-        if (s.points > 0) {
-          rankRows.push({ name: me, points: s.points, rounds: s.rounds, me: true });
-          rankRows.sort((a, b) => b.points - a.points);
-        }
+        rankSelfMissing = s.points > 0;      // 本机有分但数据库没有 → 提示上传（不塞假行）
       }
       rankSource = "cloud";
       return { cloud: true };
@@ -4400,12 +4435,13 @@ function openRank(tab) {
   $("ovRank").classList.remove("hide");
   $("rankDiag").classList.add("hide"); // 清掉上一轮诊断结果
   renderRank();
-  loadRankRows(rankTab).then((r) => {
+  (async () => {
+    await retryPendingRank();          // 先把上次没发出去的成绩补上，再读库（只读，不新增写入）
+    const r = await loadRankRows(rankTab);
     if (r && r.err) rankNote = rankFriendlyErr(r.err) + "（已按本机统计显示）";
     else if (!r || !r.cloud) rankNote = rankPushErr ? rankFriendlyErr(rankPushErr) + "（已按本机统计显示）" : rankNote;
     renderRank();
-    if (rankSource === "cloud") pushMyRank();   // 顺手把最新成绩推上去
-  });
+  })();
 }
 function closeRank() { $("ovRank").classList.add("hide"); }
 
@@ -4427,20 +4463,153 @@ function myRankProfile() {
   };
 }
 
+/** 云端参数是否已配置（只看本地配置，不发请求） */
+function rankCloudReady() {
+  return !!(window.SupaSync && SupaSync.credsReady && SupaSync.credsReady() && SupaSync.pushRank);
+}
+
 /** 把本人成绩推到云端排行榜；未登录 / 未配置 / 失败都静默返回 false */
-async function pushMyRank() {
+async function pushMyRank(reason) {
   const p = myRankProfile();
   if (!p) return false;
+  if (!rankCloudReady()) return false;        // 没配云端 → 根本不用留待上传标记
+  markRankPending(reason || "push");
   try {
-    if (!window.SupaSync || !SupaSync.credsReady || !SupaSync.credsReady()) return false;
-    if (!SupaSync.pushRank) return false;
     await SupaSync.pushRank(p);
     rankPushErr = "";           // 成功即清掉历史失败标记
+    noteRankUploaded();         // 记下上传时间，榜里显示「上次上传 xx:xx」
+    clearRankPending();
     return true;
   } catch (e) {
     rankPushErr = (e && e.message) || String(e);   // 静默存起来，开榜时用 rankFriendlyErr 提示
     return false;
   }
+}
+
+/* =========================================================
+   13.9 积分「离开即上传」（v2.13）
+   ---------------------------------------------------------
+   排行榜的数据由每个用户自己上报：只要本人积分变了或离开游戏，就把
+   今日 / 本周 / 累计三行写进 Supabase 的 public.ranks；排行榜页只读数据库。
+   三道保险，任何一道成立成绩就不会丢：
+     ① 每局结束 → uploadRoundScore 立刻上传，结果显示在结算面板（v2.14）
+     ② 切后台 / 关页面 / 刷新 → flushRankLeave（keepalive 请求，页面被销毁也发得出去）
+     ③ 没发成功 → localStorage 留 pending 标记，下次打开页面 / 登录后 retryPendingRank 补推
+   ========================================================= */
+const RANK_PENDING_KEY = "wordtower_rank_pending_v1";   // 待上传标记（有值 = 还有成绩没进数据库）
+const RANK_LASTUP_KEY = "wordtower_rank_lastup_v1";     // 上次上传成功时间戳
+
+function rankPendingInfo() {
+  try {
+    const o = JSON.parse(localStorage.getItem(RANK_PENDING_KEY) || "null");
+    return o && o.at ? o : null;
+  } catch (e) {
+    return null;
+  }
+}
+function markRankPending(why) {
+  try {
+    localStorage.setItem(RANK_PENDING_KEY, JSON.stringify({
+      why: why || "", at: Date.now(), name: (currentUser() || {}).name || "",
+    }));
+  } catch (e) {}
+}
+function clearRankPending() {
+  try { localStorage.removeItem(RANK_PENDING_KEY); } catch (e) {}
+}
+function rankLastUpAt() {
+  try { return Number(localStorage.getItem(RANK_LASTUP_KEY) || 0) || 0; } catch (e) { return 0; }
+}
+function noteRankUploaded() {
+  try { localStorage.setItem(RANK_LASTUP_KEY, String(Date.now())); } catch (e) {}
+}
+/** 「上次上传 今天 14:03」/「还没上传过」 */
+function rankUpStatText() {
+  const t = rankLastUpAt();
+  if (!t) return "还没上传过";
+  const d = new Date(t);
+  const hm = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  return "上次上传 " + (dayKey(t) === dayKey(Date.now()) ? "今天 " : dayKey(t) + " ") + hm;
+}
+
+/* ---------- 局终即刻上传（v2.14） ----------
+   每局打完就把成绩推进云端，并在结算面板给出明确结果：
+   正在上传 / 已上传（累计·今日积分 + 上传时间）/ 失败原因 / 只记在本机。
+   「离开游戏」那条通道（flushRankLeave）作为兜底继续保留。 */
+let roundUploadSeq = 0;
+async function uploadRoundScore() {
+  const box = $("overCloud");
+  const seq = ++roundUploadSeq;
+  const say = (cls, text) => {
+    if (seq !== roundUploadSeq || !box) return;   // 已经开了新的一局，别覆盖新面板
+    box.className = "overcloud" + (cls ? " " + cls : "");
+    box.textContent = text;
+  };
+  const u = currentUser();
+  if (!u) { say("miss", "本局成绩未计分：还没有玩家档案"); return false; }
+  if (!rankCloudReady()) {
+    say("miss", "本局成绩只记在本机：云端没配置（设置 → 云同步），或同步脚本没加载");
+    return false;
+  }
+  say("wait", "☁️ 正在把本局成绩传到排行榜…");
+  const ok = await pushMyRank("round");
+  if (ok) {
+    const now = currentUser() || u;
+    const t = todayStat(now);
+    say("ok", "☁️ 已上传排行榜：累计 " + (now.points || 0) + " 分 · 今日 " + (t.points || 0) +
+      " 分（" + rankUpStatText() + "）");
+  } else {
+    say("bad", "⚠ 上传失败：" + rankFriendlyErr(rankPushErr || "未知原因") +
+      "。本局成绩已记在本机，离开游戏时会自动重试，也可在排行榜点「⬆️ 立即上传我的成绩」");
+  }
+  return ok;
+}
+
+/**
+ * 离开游戏时上传（v2.13）：visibilitychange(hidden) / pagehide / beforeunload 都走这里。
+ * 优先用 SupaSync.pushRankBeacon —— 缓存 token + keepalive 的裸请求，页面正在关闭也能发完；
+ * 没缓存（首次使用、还没成功推送过）时退回普通请求，能等就等。
+ */
+function flushRankLeave(why) {
+  const p = myRankProfile();
+  if (!p || !rankCloudReady()) return false;
+  markRankPending(why || "leave");     // 先落标记：请求没发出去也不丢
+  const sync = window.SupaSync;
+  if (sync && sync.pushRankBeacon && sync.beaconReady && sync.beaconReady()) {
+    try {
+      const pr = sync.pushRankBeacon(p);
+      if (pr && pr.then) {
+        pr.then((r) => {
+          if (r && r.ok) { rankPushErr = ""; noteRankUploaded(); clearRankPending(); }
+        }, () => {});
+      }
+      return true;
+    } catch (e) {
+      rankPushErr = (e && e.message) || String(e);
+    }
+  }
+  pushMyRank("leave");
+  return true;
+}
+
+/** 上次没推成功的成绩，这次开机 / 登录 / 开榜时补推 */
+async function retryPendingRank() {
+  const pend = rankPendingInfo();
+  if (!pend) return false;
+  if (!myRankProfile()) { clearRankPending(); return false; }  // 本机没玩家档案 → 标记作废
+  return pushMyRank("retry");
+}
+
+/** 装离开钩子（只装一次） */
+let rankLeaveHooked = false;
+function installRankLeaveHooks() {
+  if (rankLeaveHooked) return;
+  rankLeaveHooked = true;
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushRankLeave("hidden");
+  });
+  window.addEventListener("pagehide", () => flushRankLeave("pagehide"));
+  window.addEventListener("beforeunload", () => flushRankLeave("beforeunload"));
 }
 
 /* =========================================================
@@ -4509,6 +4678,33 @@ $("btnHomeRank").addEventListener("click", () => openRank("day"));
 $("btnRankOver").addEventListener("click", () => openRank("day"));
 $("btnRankClose").addEventListener("click", closeRank);
 $("btnRankRefresh").addEventListener("click", () => openRank(rankTab));
+/* 「立即上传我的成绩」（v2.13）：榜单只读数据库，写入口只留这一处手动触发 */
+$("btnRankUpload").addEventListener("click", async () => {
+  const btn = $("btnRankUpload");
+  if (!myRankProfile()) {
+    rankNote = "本机还没登记玩家：先回主页填昵称，成绩才会进数据库";
+    renderRank();
+    return;
+  }
+  if (!rankCloudReady()) {
+    rankNote = "云端参数没配：到「设置 → 云同步」填 Project URL 与 anon key";
+    renderRank();
+    return;
+  }
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "上传中…";
+  const ok = await pushMyRank("manual");
+  btn.disabled = false;
+  btn.textContent = old;
+  if (ok) {
+    rankNote = "已上传：本人积分已写进云端数据库（" + rankUpStatText() + "）";
+    await loadRankRows(rankTab);
+  } else {
+    rankNote = "上传失败：" + rankFriendlyErr(rankPushErr || "未知原因") + "（关页面时还会自动重试）";
+  }
+  renderRank();
+});
 /* 修复按钮是 innerHTML 动态渲染的，用事件委托（v2.9） */
 $("rankSrc").addEventListener("click", (e) => {
   const id = e.target && e.target.id;
