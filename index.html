@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 构建：原型 citaworld.html v2.10 · 2026-11-01T06:04:48.600Z · 由 工具/同步站点.js 自动生成，请勿手改 -->
+<!-- 构建：原型 citaworld.html v2.11 · 2026-11-01T06:19:31.682Z · 由 工具/同步站点.js 自动生成，请勿手改 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -909,8 +909,9 @@ const DEFAULT_BANK = [
    ========================================================= */
 /* ---------- 版本号 ----------
    规则：每次功能更新，版本号 +0.1（1.0 → 1.1 → 1.2 …），并在下面记一条更新记录。 */
-const APP_VERSION = "2.10";
+const APP_VERSION = "2.11";
 const VERSION_LOG = [
+  { v: "2.11", d: "诊断能分清「网络不通」的三种原因了：先用 Supabase 官方健康检查接口探测——项目已休眠（免费版一周无活动，HTTP 540）、服务异常、还是网络不通，各给对应提示；网络失败时诊断区直接出现「🌐 打开 Supabase 控制台」按钮，一键直达项目页点 Restore 恢复。网络不通的提示还补充了国内直连 supabase.co 受限的说明与 Cloudflare 备选方案。" },
   { v: "2.10", d: "排行榜新增「🔍 诊断连接」：点一下就逐项检查云端链路——① 云端参数是否配置 ② 网络可达、是否登录 ③ 排行榜表 public.ranks 是否可读，结果直接写在榜单里；四项全过还会自动把本机最新成绩补推上去并刷新榜单。到底断在哪一环，不用再猜。" },
   { v: "2.9", d: "排行榜修表不用再找文件：云端提示「未启用排行榜表」时，面板里直接出现「📋 一键复制修复 SQL」按钮，点一下把补建 ranks 表的完整 SQL 复制到剪贴板，去 Supabase 控制台 SQL Editor 粘贴运行即可（与 远程同步/sql-升级-排行榜.sql 内容一致，本地打开也能复制）。" },
   { v: "2.8", d: "排行榜云端报错不再让人一头雾水：把「Could not find the table 'public.ranks' in the schema cache」翻译成明确指引——项目是 v2.0 之前建的没建 ranks 表，跑一次 远程同步/sql-升级-排行榜.sql 即可；表已建但缓存没刷新则只跑文件里的 notify pgrst, 'reload schema';。网络不通 / 项目休眠、权限策略缺失也各有对应提示。每局结束的静默推送失败不再无声无息：下次打开排行榜会把失败原因一并说明。新增增量脚本 sql-升级-排行榜.sql（建表 + 策略 + 刷缓存，幂等）。" },
@@ -4156,21 +4157,45 @@ async function runRankDiagnose() {
   box.innerHTML = diagLine(null, "诊断中…");
   const lines = [];
   const add = (okFlag, label, detail) => lines.push(diagLine(okFlag, label, detail));
-  let net = true, tableOK = false;
+  let net = true, tableOK = false, netDead = false;
   try {
     if (!(window.SupaSync && SupaSync.credsReady && SupaSync.credsReady())) {
       add(false, "云端参数", "未配置：到「设置 → 云同步」填入 Project URL 与 anon key");
       net = false;
     } else {
-      add(true, "云端参数", "已配置 " + SupaSync.projectUrl().replace(/^https:\/\/([^\.]+)\..*/, "$1"));
-      try {
-        const w = await SupaSync.whoami();
-        if (w && w.signedIn) add(true, "网络与登录", "已登录 " + (w.email || w.id));
-        else { add(false, "登录状态", "未登录：回到登录页登录后，成绩才会进入云端榜"); }
-      } catch (e) {
-        net = false;
-        add(false, "网络连接", rankFriendlyErr((e && e.message) || String(e)));
+      const ref = (SupaSync.projectUrl().replace(/^https:\/\/([^\.]+)\..*/, "$1")) || "项目";
+      add(true, "云端参数", "已配置 " + ref);
+      // ② 先做健康检查：区分「项目休眠」「服务异常」「网络不通」
+      let reachable = true;
+      if (SupaSync.ping) {
+        try {
+          await SupaSync.ping();
+        } catch (e) {
+          const code = (e && e.code) || "";
+          reachable = false;
+          netDead = true;
+          if (code === "paused") {
+            add(false, "网络连接", "Supabase 项目已休眠（免费版一周无活动自动暂停）：打开控制台 → 项目 → 点 Restore 恢复，约 1-2 分钟后回来再点「诊断连接」");
+          } else if (code === "bad_status") {
+            add(false, "网络连接", "云端服务异常（" + ((e && e.message) || "") + "）：稍等几分钟重试，或到控制台看项目状态");
+          } else {
+            add(false, "网络连接", rankFriendlyErr((e && e.message) || String(e)) +
+              "。国内网络直连 supabase.co 也常不通，可换 Cloudflare 方案（见 远程同步/README.md）");
+          }
+        }
       }
+      if (reachable) {
+        try {
+          const w = await SupaSync.whoami();
+          if (w && w.signedIn) add(true, "网络与登录", "已登录 " + (w.email || w.id));
+          else { add(false, "登录状态", "未登录：回到登录页登录后，成绩才会进入云端榜"); }
+        } catch (e) {
+          reachable = false;
+          netDead = true;
+          add(false, "网络连接", rankFriendlyErr((e && e.message) || String(e)));
+        }
+      }
+      net = reachable;
     }
     if (net) {
       try {
@@ -4198,7 +4223,14 @@ async function runRankDiagnose() {
     }
   } finally {
     if (!tableOK) add(null, "下一步", "按上面 ✗ 项处理后，回到这里再点一次「🔍 诊断连接」");
-    box.innerHTML = lines.join("<br>");
+    let html = lines.join("<br>");
+    if (netDead) {
+      const ref = (window.SupaSync && SupaSync.projectUrl ? SupaSync.projectUrl() : "")
+        .replace(/^https:\/\/([^\.]+)\..*/, "$1");
+      html += '<br><a id="btnRankDash" class="rfixbtn" style="display:inline-block;text-decoration:none" target="_blank" rel="noopener" href="https://supabase.com/dashboard/project/' +
+        esc(ref) + '">🌐 打开 Supabase 控制台（恢复 / 查看项目）</a>';
+    }
+    box.innerHTML = html;
     rankDiagRunning = false;
   }
 }

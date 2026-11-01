@@ -168,6 +168,30 @@
       var u = res && res.data && res.data.user;
       return { signedIn: !!u, id: (u && u.id) || null, email: (u && u.email) || null };
     },
+    /**
+     * 健康检查（v2.11，排行榜诊断用）：直接请求 auth 服务的 /health 接口。
+     * 比起让业务接口失败后再猜原因，这里能区分三种情况：
+     *   网络不通（fetch 抛错 / 被墙）→ code 'network'
+     *   项目已休眠（免费版一周无活动，HTTP 540）→ code 'paused'
+     *   其他服务端状态（如 503）→ code 'bad_status'
+     * 正常返回 { ok: true }。
+     */
+    ping: async function () {
+      var u = url || store.get(URL_KEY) || '';
+      var k = anonKey || store.get(KEY_KEY) || '';
+      if (!u || !k) throw err('not_configured', '云端参数未配置');
+      var res;
+      try {
+        res = await fetch(u + '/auth/v1/health', {
+          headers: { apikey: k, Authorization: 'Bearer ' + k },
+        });
+      } catch (e) {
+        throw err('network', 'Failed to fetch');
+      }
+      if (res.status === 540) throw err('paused', '项目已休眠（HTTP 540）');
+      if (!res.ok) throw err('bad_status', 'HTTP ' + res.status);
+      return { ok: true };
+    },
     collect: collect,
     apply: apply,
     summary: function (snap) {
