@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 构建：原型 citaworld.html v2.9 · 2026-11-01T05:36:56.837Z · 由 工具/同步站点.js 自动生成，请勿手改 -->
+<!-- 构建：原型 citaworld.html v2.10 · 2026-11-01T06:04:48.600Z · 由 工具/同步站点.js 自动生成，请勿手改 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -286,6 +286,11 @@
   .rfixbtn{margin-top:6px;padding:5px 10px;font-size:10.5px;font-weight:600;color:var(--brand);
     background:#eef2ff;border:1.4px solid var(--brand);border-radius:8px;cursor:pointer}
   .rfixbtn:active{transform:scale(.97)}
+  .rfixbtn + .rfixbtn{margin-left:6px}
+  .rdiag{margin-top:8px;padding:8px 10px;font-size:10.5px;line-height:2;background:#f7f9fe;
+    border:1.4px solid var(--line);border-radius:10px;text-align:left;word-break:break-all}
+  .rdiag .rok{color:#0a8f4c;font-weight:700}
+  .rdiag .rbad{color:#d63333;font-weight:700}
   .rankfoot{padding:0 16px 16px}
 
   .bankopt{
@@ -792,6 +797,7 @@
     </div>
     <div class="ranklist" id="rankList"></div>
     <div class="ranksrc" id="rankSrc"></div>
+    <div class="rdiag hide" id="rankDiag"></div>
     <div class="rankfoot">
       <div class="row">
         <button class="btn primary" id="btnRankRefresh" style="flex:1">刷新</button>
@@ -903,8 +909,9 @@ const DEFAULT_BANK = [
    ========================================================= */
 /* ---------- 版本号 ----------
    规则：每次功能更新，版本号 +0.1（1.0 → 1.1 → 1.2 …），并在下面记一条更新记录。 */
-const APP_VERSION = "2.9";
+const APP_VERSION = "2.10";
 const VERSION_LOG = [
+  { v: "2.10", d: "排行榜新增「🔍 诊断连接」：点一下就逐项检查云端链路——① 云端参数是否配置 ② 网络可达、是否登录 ③ 排行榜表 public.ranks 是否可读，结果直接写在榜单里；四项全过还会自动把本机最新成绩补推上去并刷新榜单。到底断在哪一环，不用再猜。" },
   { v: "2.9", d: "排行榜修表不用再找文件：云端提示「未启用排行榜表」时，面板里直接出现「📋 一键复制修复 SQL」按钮，点一下把补建 ranks 表的完整 SQL 复制到剪贴板，去 Supabase 控制台 SQL Editor 粘贴运行即可（与 远程同步/sql-升级-排行榜.sql 内容一致，本地打开也能复制）。" },
   { v: "2.8", d: "排行榜云端报错不再让人一头雾水：把「Could not find the table 'public.ranks' in the schema cache」翻译成明确指引——项目是 v2.0 之前建的没建 ranks 表，跑一次 远程同步/sql-升级-排行榜.sql 即可；表已建但缓存没刷新则只跑文件里的 notify pgrst, 'reload schema';。网络不通 / 项目休眠、权限策略缺失也各有对应提示。每局结束的静默推送失败不再无声无息：下次打开排行榜会把失败原因一并说明。新增增量脚本 sql-升级-排行榜.sql（建表 + 策略 + 刷缓存，幂等）。" },
   { v: "2.7", d: "口令多了个更好看的位置：public.profiles 新增 password_plain 字段，由触发器从 user_credentials 自动镜像（客户端零改动），Supabase 控制台 Table Editor → profiles 一行就能看全「昵称 + 邮箱 + 口令」。没有 profiles 行的老账号会顺手补一行（昵称回退 display_name → 邮箱前缀 → 玩家）。另说明：不往 auth.users 加自定义列——那属于 GoTrue 托管 schema，自定义列任何仪表盘都不显示，Auth 升级/重置还有丢列风险。" },
@@ -4123,7 +4130,77 @@ function renderRankSrc() {
     : "本机模式：只统计这台设备上登记过的用户名，登录后可和同学一起排名";
   const needsFix = rankNote && rankNote.indexOf("sql-升级-排行榜.sql") >= 0;
   $("rankSrc").innerHTML = esc(tip) + (rankNote ? '<br>' + esc(rankNote) : "") +
-    (needsFix ? '<br><button id="btnRankFix" class="rfixbtn">📋 一键复制修复 SQL</button>' : "");
+    (needsFix ? '<br><button id="btnRankFix" class="rfixbtn">📋 一键复制修复 SQL</button>' : "") +
+    '<br><button id="btnRankDiag" class="rfixbtn">🔍 诊断连接</button>';
+}
+
+/**
+ * 排行榜一键诊断（v2.10）：逐项检查云端链路，把结果直接写在榜单面板里——
+ *   ① 云端参数是否配置（credsReady）
+ *   ② 网络可达 + 是否登录（SupaSync.whoami）
+ *   ③ ranks 表是否可用（fetchRanks 试读 1 行）
+ *   ④ 全部通过 → 自动把本机最新成绩补推到云端并刷新榜单
+ * 结果渲染进 #rankDiag，每次诊断覆盖上一轮。
+ */
+let rankDiagRunning = false;
+function diagLine(okFlag, label, detail) {
+  const mark = okFlag === true ? '<span class="rok">✓</span>'
+    : okFlag === false ? '<span class="rbad">✗</span>' : '·';
+  return mark + " " + esc(label) + (detail ? "：" + esc(detail) : "");
+}
+async function runRankDiagnose() {
+  if (rankDiagRunning) return;
+  rankDiagRunning = true;
+  const box = $("rankDiag");
+  box.classList.remove("hide");
+  box.innerHTML = diagLine(null, "诊断中…");
+  const lines = [];
+  const add = (okFlag, label, detail) => lines.push(diagLine(okFlag, label, detail));
+  let net = true, tableOK = false;
+  try {
+    if (!(window.SupaSync && SupaSync.credsReady && SupaSync.credsReady())) {
+      add(false, "云端参数", "未配置：到「设置 → 云同步」填入 Project URL 与 anon key");
+      net = false;
+    } else {
+      add(true, "云端参数", "已配置 " + SupaSync.projectUrl().replace(/^https:\/\/([^\.]+)\..*/, "$1"));
+      try {
+        const w = await SupaSync.whoami();
+        if (w && w.signedIn) add(true, "网络与登录", "已登录 " + (w.email || w.id));
+        else { add(false, "登录状态", "未登录：回到登录页登录后，成绩才会进入云端榜"); }
+      } catch (e) {
+        net = false;
+        add(false, "网络连接", rankFriendlyErr((e && e.message) || String(e)));
+      }
+    }
+    if (net) {
+      try {
+        const r = await SupaSync.fetchRanks("total", "all", 1);
+        add(true, "排行榜表", "public.ranks 可读（返回 " + ((r && r.length) || 0) + " 行）");
+        tableOK = true;
+      } catch (e) {
+        add(false, "排行榜表", rankFriendlyErr((e && e.message) || String(e)));
+      }
+      if (tableOK) {
+        if (!myRankProfile()) {
+          add(false, "成绩推送", "本机还没登记玩家：回主页登记用户名后，成绩才会推送");
+        } else {
+          const pushed = await pushMyRank();
+          add(!!pushed, "成绩推送", pushed ? "本机最新成绩已补推到云端" : "推送失败，稍后点「刷新」重试");
+        }
+        // 全部关键项通过才整体刷新榜单（把可能残留的降级提示清掉）
+        if (!lines.some((l) => l.indexOf('<span class="rbad">') >= 0)) {
+          rankNote = "";
+          const rr = await loadRankRows(rankTab);
+          if (rr && rr.err) rankNote = rankFriendlyErr(rr.err) + "（已按本机统计显示）";
+          renderRank();
+        }
+      }
+    }
+  } finally {
+    if (!tableOK) add(null, "下一步", "按上面 ✗ 项处理后，回到这里再点一次「🔍 诊断连接」");
+    box.innerHTML = lines.join("<br>");
+    rankDiagRunning = false;
+  }
 }
 
 function renderRank() {
@@ -4284,6 +4361,7 @@ function openRank(tab) {
   rankRows = localRankRows(rankTab);   // 先本机秒开，等云端返回再替换
   rankSource = "local";
   $("ovRank").classList.remove("hide");
+  $("rankDiag").classList.add("hide"); // 清掉上一轮诊断结果
   renderRank();
   loadRankRows(rankTab).then((r) => {
     if (r && r.err) rankNote = rankFriendlyErr(r.err) + "（已按本机统计显示）";
@@ -4396,8 +4474,9 @@ $("btnRankClose").addEventListener("click", closeRank);
 $("btnRankRefresh").addEventListener("click", () => openRank(rankTab));
 /* 修复按钮是 innerHTML 动态渲染的，用事件委托（v2.9） */
 $("rankSrc").addEventListener("click", (e) => {
-  const b = e.target && e.target.id === "btnRankFix" ? e.target : null;
-  if (b) copyRankFixSql(b);
+  const id = e.target && e.target.id;
+  if (id === "btnRankFix") copyRankFixSql(e.target);
+  else if (id === "btnRankDiag") runRankDiagnose();
 });
 Array.prototype.forEach.call($("rankTabs").children, (b) => {
   b.addEventListener("click", () => openRank(b.getAttribute("data-tab")));

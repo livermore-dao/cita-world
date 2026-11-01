@@ -152,6 +152,22 @@
     projectUrl: function () {
       return url || store.get(URL_KEY) || '';
     },
+    /**
+     * 我是谁（v2.10，排行榜诊断用）：轻量请求 auth.getUser。
+     * 网络不通抛错（消息含 Failed to fetch 等，调用方用 rankFriendlyErr 翻译）；
+     * 未登录返回 { signedIn:false }；已登录返回 { signedIn:true, id, email }。
+     */
+    whoami: async function () {
+      var sb = getSB();
+      var res = await sb.auth.getUser();
+      if (res && res.error) {
+        var msg = (res.error && (res.error.message || res.error.msg)) || String(res.error);
+        if (/Failed to fetch|NetworkError|network|fetch/i.test(msg)) throw err('network', msg);
+        return { signedIn: false, id: null, email: null, raw: msg };
+      }
+      var u = res && res.data && res.data.user;
+      return { signedIn: !!u, id: (u && u.id) || null, email: (u && u.email) || null };
+    },
     collect: collect,
     apply: apply,
     summary: function (snap) {
