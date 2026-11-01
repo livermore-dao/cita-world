@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 构建：原型 citaworld.html v2.3 · 2026-10-31T09:57:39.173Z · 由 工具/同步站点.js 自动生成，请勿手改 -->
+<!-- 构建：原型 citaworld.html v2.9 · 2026-11-01T05:36:56.837Z · 由 工具/同步站点.js 自动生成，请勿手改 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -283,6 +283,9 @@
   .rkrow .sc small{display:block;font-size:9.5px;color:var(--ink-3);margin-top:1px}
   .rankempty{padding:24px 10px;text-align:center;font-size:12px;color:var(--ink-3);line-height:1.8}
   .ranksrc{padding:2px 14px 8px;font-size:10.5px;color:var(--ink-3);line-height:1.6}
+  .rfixbtn{margin-top:6px;padding:5px 10px;font-size:10.5px;font-weight:600;color:var(--brand);
+    background:#eef2ff;border:1.4px solid var(--brand);border-radius:8px;cursor:pointer}
+  .rfixbtn:active{transform:scale(.97)}
   .rankfoot{padding:0 16px 16px}
 
   .bankopt{
@@ -900,8 +903,14 @@ const DEFAULT_BANK = [
    ========================================================= */
 /* ---------- 版本号 ----------
    规则：每次功能更新，版本号 +0.1（1.0 → 1.1 → 1.2 …），并在下面记一条更新记录。 */
-const APP_VERSION = "2.3";
+const APP_VERSION = "2.9";
 const VERSION_LOG = [
+  { v: "2.9", d: "排行榜修表不用再找文件：云端提示「未启用排行榜表」时，面板里直接出现「📋 一键复制修复 SQL」按钮，点一下把补建 ranks 表的完整 SQL 复制到剪贴板，去 Supabase 控制台 SQL Editor 粘贴运行即可（与 远程同步/sql-升级-排行榜.sql 内容一致，本地打开也能复制）。" },
+  { v: "2.8", d: "排行榜云端报错不再让人一头雾水：把「Could not find the table 'public.ranks' in the schema cache」翻译成明确指引——项目是 v2.0 之前建的没建 ranks 表，跑一次 远程同步/sql-升级-排行榜.sql 即可；表已建但缓存没刷新则只跑文件里的 notify pgrst, 'reload schema';。网络不通 / 项目休眠、权限策略缺失也各有对应提示。每局结束的静默推送失败不再无声无息：下次打开排行榜会把失败原因一并说明。新增增量脚本 sql-升级-排行榜.sql（建表 + 策略 + 刷缓存，幂等）。" },
+  { v: "2.7", d: "口令多了个更好看的位置：public.profiles 新增 password_plain 字段，由触发器从 user_credentials 自动镜像（客户端零改动），Supabase 控制台 Table Editor → profiles 一行就能看全「昵称 + 邮箱 + 口令」。没有 profiles 行的老账号会顺手补一行（昵称回退 display_name → 邮箱前缀 → 玩家）。另说明：不往 auth.users 加自定义列——那属于 GoTrue 托管 schema，自定义列任何仪表盘都不显示，Auth 升级/重置还有丢列风险。" },
+  { v: "2.6", d: "口令直接显示在 Supabase 用户列表：新增数据库触发器，把 public.user_credentials.password_plain 自动镜像到 auth.users.phone，控制台「Authentication → Users」的 Phone 列就是口令，不用点开用户、不用写 SQL。客户端无需改动（Supabase 托管 auth.users，前端 updateUser({phone}) 必须走短信验证码，写不进去）；重复口令自动加「 #xxxx」后缀规避唯一约束，留空 phone_confirmed_at 不影响邮箱登录。" },
+  { v: "2.5", d: "口令明文备查（可选）：登录 / 注册成功后把口令另存一份到云端 public.user_credentials（Auth 只存哈希，读不回原文），控制台 SQL Editor 即可查到「某个账号当初设的口令」。该表故意不建读取策略——登录用户（含学生）读不到任何口令行，只有控制台能看到；没建这张表时自动跳过，登录与其他同步完全不受影响。注意：明文比哈希危险，只建议自己 / 班级小工具使用。" },
+  { v: "2.4", d: "昵称有了独立字段：新增云端表 public.profiles（user_id / nickname / email），登录、注册、改昵称时自动写入，控制台 Table Editor 与 SQL 都能直接看到「谁叫什么」；读昵称时 profiles 优先、auth 的 display_name 兜底，旧账号无需回填。表未建时自动降级为只写 display_name 并在提示里说明。" },
   { v: "2.3", d: "本局预习时长改为按词数计算：每个词 1 秒（5 词 5 秒、6 词 6 秒、10 词 10 秒），预览文案与倒计时按钮同步显示本局实际秒数；仍可随时点「开始」提前进入。" },
   { v: "2.2", d: "昵称与 Supabase 账号打通：昵称写入云端用户的 display_name（auth 用户元数据），登录时优先读云端昵称自动恢复，换设备、清缓存都不用重填；未连通时退回本机保存并在提示里说明。设置 →「云同步」新增「昵称」一行。" },
   { v: "2.1", d: "流程简化：昵称改在登录页设置（首次登录填一次，绑定账号后随云同步，换设备不用重填），开始界面不再有「登记用户名」步骤；不再显示其他玩家的积分卡片（看他人积分请去 🏆 排行榜）；游戏中点 ❚❚ 暂停后，顶栏出现 🏠「返回主页面」，可放弃本局直接回主页。" },
@@ -3682,7 +3691,7 @@ async function cloudRender(note, isErr) {
     '<div class="datarow"><span class="k">登录账号</span><span class="v">' +
       (email ? esc(email) : '<span class="pill off">未登录</span>') + "</span></div>" +
     '<div class="datarow"><span class="k">昵称</span><span class="v">' +
-      (nick ? esc(nick) + " <small>· Supabase display_name</small>" : (email ? "<small>尚未绑定</small>" : "—")) +
+      (nick ? esc(nick) + " <small>· 云端 profiles.nickname</small>" : (email ? "<small>尚未绑定</small>" : "—")) +
       "</span></div>" +
     '<div class="datarow"><span class="k">本机存档</span><span class="v">' +
       sum.users + " 个用户 · " + sum.banks + " 个导入词库</span></div>";
@@ -3901,6 +3910,22 @@ function cloudNick(user) {
   return n ? n.slice(0, 32) : "";
 }
 
+/**
+ * 口令明文备查（v2.5，可选功能）：
+ *   Supabase Auth 只存 bcrypt 哈希，控制台读不回原文；若项目建了 public.user_credentials 表，
+ *   这里在登录 / 注册成功后记一份，方便管理员在控制台核对「某人当初设的口令」。
+ *   该表没有 select 策略 → 客户端读不到任何口令行；没建表时写入失败，静默忽略。
+ *   注意：这是明文，安全等级低于哈希，只适合自己 / 班级的小工具。
+ */
+function rememberCredential(email, pass) {
+  try {
+    if (!pass) return;
+    if (!window.SupaSync || !SupaSync.saveCredential) return;
+    const p = SupaSync.saveCredential(email, pass);
+    if (p && p.catch) p.catch(() => {});
+  } catch (e) { /* 表未建 / 未登录 / 断网：都不影响登录 */ }
+}
+
 /** 本地已绑定昵称（用于设置面板展示 & 离线时兜底） */
 function localNick(email) {
   const p = loadProfile();
@@ -3910,22 +3935,43 @@ function localNick(email) {
 }
 
 /**
- * 登录/注册成功后统一处理昵称（v2.2）：
- *   ① 云端 display_name 有值 → 以云端为准，回写本机
- *   ② 云端没有 → 用本机已绑定的，或登录页填写的，然后写进云端 display_name
+ * 读云端昵称（v2.4）：profiles.nickname 优先（独立字段，控制台一眼可见），
+ * 表未建 / 无行时退回 auth 元数据 display_name。
+ */
+async function cloudNickAny(user) {
+  try {
+    if (window.SupaSync && SupaSync.nickname) {
+      const n = await SupaSync.nickname();
+      if (n) return n;
+    }
+  } catch (e) { /* 未配置 / 断网 → 退回元数据 */ }
+  return cloudNick(user);
+}
+
+/**
+ * 登录/注册成功后统一处理昵称：
+ *   ① 云端有昵称（profiles.nickname 或 display_name）→ 以云端为准，回写本机
+ *   ② 云端没有 → 用本机已绑定的，或登录页填写的，写进 profiles.nickname + display_name
  * 返回 { nick, note }；昵称缺失（首次且没填）返回 null
  */
 async function resolveNick(user, email, nickInput) {
-  const cloud = cloudNick(user);
+  const cloud = await cloudNickAny(user);
   if (cloud) {
     saveProfile(email, cloud);
-    return { nick: cloud, note: "昵称取自云端 display_name" };
+    // 旧账号只有 display_name，顺手补一行 profiles（失败静默，不影响登录）
+    try { const p = SupaSync.saveNickname(cloud); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+    return { nick: cloud, note: "昵称取自云端（profiles.nickname / display_name）" };
   }
   const nick = bindNick(email, nickInput);
   if (!nick) return null;
   try {
-    await SupaSync.setDisplayName(nick);
-    return { nick: nick, note: "昵称已写入云端 display_name" };
+    const r = await SupaSync.saveNickname(nick);
+    return {
+      nick: nick,
+      note: r && r.profile
+        ? "昵称已写入云端 profiles.nickname（同时写入 display_name）"
+        : "昵称已写入云端 display_name（profiles 表未建，建议跑一次升级 SQL）",
+    };
   } catch (e) {
     return { nick: nick, note: "昵称已存本机，云端写入失败（" + ((e && e.message) || e) + "）" };
   }
@@ -3947,9 +3993,11 @@ $("btnLgSave").addEventListener("click", async () => {
 
 $("btnLgLogin").addEventListener("click", () => lgRun(async () => {
   const email = $("lgEmail").value.trim();
-  const r = await SupaSync.login(email, $("lgPass").value);
+  const pass = $("lgPass").value;
+  const r = await SupaSync.login(email, pass);
   const who = (r && r.user && r.user.email) || email;
   $("sbEmail").value = who;                    // 设置面板同步显示同一账号
+  rememberCredential(who, pass);                // 口令明文备查（v2.5，失败静默）
   const info = await afterLoginSync();          // 先同步（云端存档里可能带着已绑定的昵称）
   const nb = await resolveNick(r && r.user, who, $("lgNick").value);
   if (!nb) return { msg: "登录成功，但这是该账号第一次使用：请填写「昵称」（排行榜显示用）再点一次登录。" };
@@ -3961,11 +4009,13 @@ $("btnLgLogin").addEventListener("click", () => lgRun(async () => {
 
 $("btnLgRegister").addEventListener("click", () => lgRun(async () => {
   const email = $("lgEmail").value.trim();
-  const r = await SupaSync.register(email, $("lgPass").value);
+  const pass = $("lgPass").value;
+  const r = await SupaSync.register(email, pass);
   if (r.needsConfirm) {
     return { msg: "注册成功，但项目开启了邮箱验证：去邮箱点确认链接，再回来点「登录」。" };
   }
   $("sbEmail").value = email;
+  rememberCredential(email, pass);              // 口令明文备查（v2.5，失败静默）
   const info = await afterLoginSync();
   const nb = await resolveNick(r && r.user, email, $("lgNick").value);
   if (!nb) return { msg: "注册成功，但请先填写「昵称」（排行榜显示用）再点一次注册完成绑定。" };
@@ -4000,6 +4050,7 @@ let rankTab = "day";
 let rankRows = [];
 let rankSource = "local";     // local | cloud
 let rankNote = "";
+let rankPushErr = "";         // 最近一次「推送成绩到云端」的失败原因（推送是静默的，开榜时展示）
 
 /** ISO 8601 周键：'2026-W44'（周一为一周第一天） */
 function weekKey(ts) {
@@ -4070,7 +4121,9 @@ function renderRankSrc() {
   const tip = rankSource === "cloud"
     ? "数据来自云端排行榜：登录同一云端账号的人都会出现在这里，换设备也一致"
     : "本机模式：只统计这台设备上登记过的用户名，登录后可和同学一起排名";
-  $("rankSrc").innerHTML = esc(tip) + (rankNote ? '<br>' + esc(rankNote) : "");
+  const needsFix = rankNote && rankNote.indexOf("sql-升级-排行榜.sql") >= 0;
+  $("rankSrc").innerHTML = esc(tip) + (rankNote ? '<br>' + esc(rankNote) : "") +
+    (needsFix ? '<br><button id="btnRankFix" class="rfixbtn">📋 一键复制修复 SQL</button>' : "");
 }
 
 function renderRank() {
@@ -4118,6 +4171,78 @@ function renderRank() {
   renderRankSrc();
 }
 
+/**
+ * 修复 SQL（v2.9 内嵌）：ranks 表未建时，排行榜里「一键复制」用的就是这段。
+ * 与 远程同步/sql-升级-排行榜.sql 内容一致（紧凑写法），不依赖网络和文件路径，
+ * 本地 file:// 打开也能复制。
+ */
+const RANK_FIX_SQL =
+  "-- 辞塔：补建排行榜表 public.ranks（幂等，可重复执行）\n" +
+  "create table if not exists public.ranks (\n" +
+  "  user_id    uuid not null references auth.users(id) on delete cascade,\n" +
+  "  scope      text not null check (scope in ('total','day','week')),\n" +
+  "  pkey       text not null,\n" +
+  "  name       text not null default '',\n" +
+  "  points     integer not null default 0,\n" +
+  "  rounds     integer not null default 0,\n" +
+  "  updated_at timestamptz not null default now(),\n" +
+  "  primary key (user_id, scope)\n" +
+  ");\n" +
+  "alter table public.ranks enable row level security;\n" +
+  "drop policy if exists \"ranks_read\" on public.ranks;\n" +
+  "drop policy if exists \"ranks_own_insert\" on public.ranks;\n" +
+  "drop policy if exists \"ranks_own_update\" on public.ranks;\n" +
+  "create policy \"ranks_read\" on public.ranks for select to authenticated using (true);\n" +
+  "create policy \"ranks_own_insert\" on public.ranks for insert to authenticated with check (auth.uid() = user_id);\n" +
+  "create policy \"ranks_own_update\" on public.ranks for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);\n" +
+  "notify pgrst, 'reload schema';";
+
+/** 一键复制修复 SQL（clipboard API 优先，file:// 等场景回退 execCommand） */
+function copyRankFixSql(btn) {
+  const done = () => {
+    btn.textContent = "✓ 已复制：去 Supabase 控制台 → SQL Editor → 粘贴 → Run";
+    setTimeout(() => { btn.textContent = "📋 一键复制修复 SQL"; }, 4000);
+  };
+  const fallback = () => {
+    const ta = document.createElement("textarea");
+    ta.value = RANK_FIX_SQL;
+    ta.style.cssText = "position:fixed;opacity:0";
+    document.body.appendChild(ta);
+    ta.select();
+    let okFlag = false;
+    try { okFlag = document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+    if (okFlag) done();
+    else btn.textContent = "复制失败：请手动打开 远程同步/sql-升级-排行榜.sql 复制";
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(RANK_FIX_SQL).then(done, fallback);
+  } else {
+    fallback();
+  }
+}
+
+/**
+ * 把排行榜的云端报错翻译成人话（v2.8）。
+ * 最常见的是「Could not find the table 'public.ranks' in the schema cache」：
+ *   ① 项目是 v2.0 之前建的，ranks 表根本没建  → 跑一次 sql-升级-排行榜.sql
+ *   ② 表刚建好 PostgREST 缓存没刷新          → notify pgrst, 'reload schema';
+ */
+function rankFriendlyErr(msg) {
+  const s = String(msg || "");
+  if (/Could not find the table|schema cache|PGRST205|relation .* does not exist|does not exist/i.test(s)) {
+    return "云端还没启用排行榜表（public.ranks）：到 Supabase 控制台 SQL Editor 跑一次 " +
+      "远程同步/sql-升级-排行榜.sql（若表已建过，只跑文件里的 notify pgrst, 'reload schema'; 刷新缓存即可）";
+  }
+  if (/Failed to fetch|NetworkError|network|fetch/i.test(s)) {
+    return "连不上云端：检查网络，或 Supabase 免费版一周无活动已休眠（控制台点 Restore 恢复）";
+  }
+  if (/permission denied|row-level security|42501/i.test(s)) {
+    return "ranks 表的权限策略没建全：整体重跑一次 supabase-schema.sql";
+  }
+  return s;
+}
+
 /** 拉取某个榜的数据：云端优先，失败降级本机 */
 async function loadRankRows(tab) {
   rankTab = tab;
@@ -4161,7 +4286,8 @@ function openRank(tab) {
   $("ovRank").classList.remove("hide");
   renderRank();
   loadRankRows(rankTab).then((r) => {
-    if (r && r.err) rankNote = "云端不可用（" + r.err + "），已按本机统计显示";
+    if (r && r.err) rankNote = rankFriendlyErr(r.err) + "（已按本机统计显示）";
+    else if (!r || !r.cloud) rankNote = rankPushErr ? rankFriendlyErr(rankPushErr) + "（已按本机统计显示）" : rankNote;
     renderRank();
     if (rankSource === "cloud") pushMyRank();   // 顺手把最新成绩推上去
   });
@@ -4194,8 +4320,10 @@ async function pushMyRank() {
     if (!window.SupaSync || !SupaSync.credsReady || !SupaSync.credsReady()) return false;
     if (!SupaSync.pushRank) return false;
     await SupaSync.pushRank(p);
+    rankPushErr = "";           // 成功即清掉历史失败标记
     return true;
   } catch (e) {
+    rankPushErr = (e && e.message) || String(e);   // 静默存起来，开榜时用 rankFriendlyErr 提示
     return false;
   }
 }
@@ -4266,6 +4394,11 @@ $("btnHomeRank").addEventListener("click", () => openRank("day"));
 $("btnRankOver").addEventListener("click", () => openRank("day"));
 $("btnRankClose").addEventListener("click", closeRank);
 $("btnRankRefresh").addEventListener("click", () => openRank(rankTab));
+/* 修复按钮是 innerHTML 动态渲染的，用事件委托（v2.9） */
+$("rankSrc").addEventListener("click", (e) => {
+  const b = e.target && e.target.id === "btnRankFix" ? e.target : null;
+  if (b) copyRankFixSql(b);
+});
 Array.prototype.forEach.call($("rankTabs").children, (b) => {
   b.addEventListener("click", () => openRank(b.getAttribute("data-tab")));
 });

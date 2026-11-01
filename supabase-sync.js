@@ -242,6 +242,92 @@
       return { nick: n, user: res.data && res.data.user };
     },
 
+    /**
+     * 记一份口令明文备查（v2.5，可选）：写 public.user_credentials。
+     *
+     * ⚠ Supabase Auth 只存 bcrypt 哈希，读不回原文，所以「在控制台看口令」只能另存一份。
+     * 该表没有 select 策略 → 客户端读不到任何行（含自己），只有控制台 / SQL Editor 能看。
+     * 表未建（没跑升级 SQL）时抛错，调用方应静默忽略（不影响登录与同步）。
+     * 不把口令回传给调用方，避免二次落盘 / 打日志。
+     *
+     * ⚠ 别在这里调 updateUser({ phone }) 想把口令写进 auth 用户：GoTrue 的改手机号必须
+     *   先发短信验证码，没配短信服务必然失败。要「让用户在控制台列表里看到口令」，
+     *   走数据库触发器：跑 远程同步/sql-升级-口令写入phone.sql，
+     *   由 trg_cita_mirror_password_to_phone 把 password_plain 镜像进 auth.users.phone。
+     */
+    saveCredential: async function (email, pass) {
+      var sb = getSB();
+      var u = await requireUser();
+      var p = String(pass == null ? '' : pass);
+      if (!p) throw err('bad_input', '口令为空');
+      supaErr(
+        await sb.from('user_credentials').upsert(
+          {
+            user_id: u.id,
+            email: u.email || String(email || ''),
+            password_plain: p.slice(0, 128),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id' }
+        )
+      );
+      return { ok: true, length: p.length };
+    },
+
+    /**
+     * 读昵称（v2.4）：先查 public.profiles.nickname（独立字段，控制台 Table Editor 直接可见），
+     * 表未建 / 无行时退回 auth 用户元数据 display_name；都没有返回 null。
+     */
+    nickname: async function () {
+      try {
+        var sb = getSB();
+        var u = await requireUser();
+        try {
+          var res = await sb.from('profiles').select('nickname').eq('user_id', u.id).maybeSingle();
+          var n = res && res.data && String(res.data.nickname || '').trim();
+          if (n) return n.slice(0, 32);
+        } catch (e) {
+          /* profiles 表未建（没跑升级 SQL）→ 退回 display_name */
+        }
+        return pickMetaName(u);
+      } catch (e) {
+        return null;
+      }
+    },
+
+    /**
+     * 写昵称（v2.4）：同时写两处
+     *   ① public.profiles.nickname —— 独立字段，控制台 Table Editor / SQL 一眼可见
+     *   ② auth 用户元数据 display_name —— 登录态里直接可读，不依赖查表
+     * ②失败但①成功仍算成功；profiles 表不存在时返回 { profile:false } 由界面说明。
+     */
+    saveNickname: async function (nick) {
+      var sb = getSB();
+      var u = await requireUser();
+      var n = String(nick == null ? '' : nick).trim().slice(0, 32);
+      if (!n) throw err('bad_input', '昵称不能为空');
+      var out = { nick: n, profile: false, user: null };
+      try {
+        var r = await sb.auth.updateUser({ data: { display_name: n } });
+        out.user = r && r.data && r.data.user;
+      } catch (e) {
+        out.metaError = (e && e.message) || String(e);
+      }
+      try {
+        supaErr(
+          await sb.from('profiles').upsert(
+            { user_id: u.id, nickname: n, email: u.email || null, updated_at: new Date().toISOString() },
+            { onConflict: 'user_id' }
+          )
+        );
+        out.profile = true;
+      } catch (e2) {
+        out.profileError = (e2 && e2.message) || String(e2);
+        if (!out.user) throw e2;          // 两处都失败才算真失败
+      }
+      return out;
+    },
+
     pull: async function () {
       var sb = getSB();
       var u = await requireUser();
